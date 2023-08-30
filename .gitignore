@@ -1,1 +1,10 @@
+/.idea/
+/**/backend.iml
+/**/target
+.DS_Store
+/**/node_modules
+
+
+# Added by cargo; target is used for building
+
 /target
