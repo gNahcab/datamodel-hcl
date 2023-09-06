@@ -1,4 +1,4 @@
-project-info {
+project_info {
   shortcode = "082E"
   shortname = "rosetta"
   longname = "Rosetta:DSP example project"

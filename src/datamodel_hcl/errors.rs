@@ -1,9 +1,17 @@
 use std::io;
+use clap::builder::Str;
 
 #[derive(Debug)]
 pub enum DatamodelHCLError {
     IO(io::Error),
     ParseHcl(hcl::Error),
+    ParseProjectInfo(String),
+    ParsePassword(String),
+    ParseShortname(String),
+    ParseShortcode(String),
+    ParseLongname(String),
+    ParseKeywords(String),
+    ParseDescriptions(String),
 }
 
 impl From<io::Error> for DatamodelHCLError {
@@ -17,3 +25,4 @@ impl From<hcl::Error> for DatamodelHCLError {
         DatamodelHCLError::ParseHcl(error)
     }
 }
+

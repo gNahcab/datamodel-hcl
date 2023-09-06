@@ -37,6 +37,7 @@ pub fn read_in() -> Result<(),DatamodelHCLError> {
     // matches just as you would the top level cmd
     match &cli.command {
         Some(Commands::Import { project}) => datamodel_hcl::operations::import(project),
+        // Todo: return message only the following commands are allowed ?
         None => Ok(()),
     }
 

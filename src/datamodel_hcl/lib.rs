@@ -1,4 +1,5 @@
 pub mod errors;
+pub mod domain;
 use crate::errors::DatamodelHCLError;
 pub mod operations;
 use std::path::Path;
