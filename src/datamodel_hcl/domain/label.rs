@@ -1,39 +1,35 @@
-use hcl::{Block, Body};
+use hcl::{Attribute, Block, Body, body, Expression};
 use crate::errors::DatamodelHCLError;
 
 #[derive(Debug, PartialEq)]
 pub struct Label{
-    language_abbr: String,
-    text: String,
+    pub(crate) language_abbr: String,
+    pub(crate) text: String,
 }
 
-impl TryFrom<&hcl::Block> for Label {
+impl TryFrom<&hcl::Attribute> for Label {
     type Error = DatamodelHCLError;
 
-    fn try_from(value: &Block) -> Result<Self, Self::Error> {
-        todo!()
+    fn try_from(attribute: &Attribute) -> Result<Self, Self::Error> {
+        let label = Label{language_abbr:String::from(attribute.key().to_string()), text:String::from(attribute.expr().to_string())};
+        Ok(label)
     }
 }
+
+
 #[cfg(test)]
 
 mod test {
-    use hcl::{block, body};
+    use hcl::{attribute};
     use crate::domain::label::Label;
     use crate::errors::DatamodelHCLError;
 
     #[test]
     fn test_into_label() {
-        let label_block = &block!(
-            labels {
+        let label_body = &attribute!(
                 en = "my label"
-                de = "mein Aufkleber"
-                fr = "ma vignette"
-                la = "meus titulus"
-                it = "la mia etichetta"
-                ru = "мой лейбл"
-       }
         );
-        let label: Result<Label, DatamodelHCLError> = label_block.try_into();
+        let label: Result<Label, DatamodelHCLError> = label_body.try_into();
         assert!(label.is_ok())
     }
 }

@@ -9,9 +9,6 @@ use hcl::Value::String;
 use crate::domain::project_model::ProjectModel;
 
 
-
-
-
 pub fn load_datamodel<P: AsRef<Path>>(path: P) -> () {
     let input = std::fs::read_to_string(path);
     let inputstr = match input {

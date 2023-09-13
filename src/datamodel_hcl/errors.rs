@@ -1,11 +1,13 @@
 use std::io;
+use std::num::ParseIntError;
 use clap::builder::Str;
 
 #[derive(Debug)]
 pub enum DatamodelHCLError {
     IO(io::Error),
     ParseHcl(hcl::Error),
-    ParseProjectModel(String)
+    ParseInt(ParseIntError),
+    ParseProjectModel(String),
 }
 
 impl From<io::Error> for DatamodelHCLError {
@@ -17,6 +19,12 @@ impl From<io::Error> for DatamodelHCLError {
 impl From<hcl::Error> for DatamodelHCLError {
     fn from(error: hcl::Error) -> Self {
         DatamodelHCLError::ParseHcl(error)
+    }
+}
+
+impl From<ParseIntError> for DatamodelHCLError {
+    fn from(error: ParseIntError) -> Self {
+       DatamodelHCLError::ParseInt(error)
     }
 }
 

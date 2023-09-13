@@ -69,12 +69,14 @@ impl TryFrom<hcl::Body> for ProjectModel {
 #[cfg(test)]
 
 mod test {
-    use hcl::body;
+    use hcl::{block, body};
     use crate::errors::DatamodelHCLError;
 
     #[test]
-    fn group_by_ontologies() {
+    fn test_into_project_model() {
         todo!()
     }
+
+
 }
 
