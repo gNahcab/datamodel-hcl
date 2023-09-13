@@ -23,7 +23,7 @@ enum Commands {
             project: PathBuf,
     },
 }
-pub fn read_in() -> Result<(),DatamodelHCLError> {
+pub fn read_in() -> () {
     let cli = Cli::parse();
     // You can see how many times a particular flag or argument occurred
     // Note, only flags can have multiple occurrences
@@ -37,8 +37,8 @@ pub fn read_in() -> Result<(),DatamodelHCLError> {
     // matches just as you would the top level cmd
     match &cli.command {
         Some(Commands::Import { project}) => datamodel_hcl::operations::import(project),
-        // Todo: return message only the following commands are allowed ?
-        None => Ok(()),
+        // Todo: return message "only the following commands have an effect: 'Import'" ?
+        None => ()
     }
 
 }

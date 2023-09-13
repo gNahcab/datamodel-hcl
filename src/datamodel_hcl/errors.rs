@@ -5,13 +5,7 @@ use clap::builder::Str;
 pub enum DatamodelHCLError {
     IO(io::Error),
     ParseHcl(hcl::Error),
-    ParseProjectInfo(String),
-    ParsePassword(String),
-    ParseShortname(String),
-    ParseShortcode(String),
-    ParseLongname(String),
-    ParseKeywords(String),
-    ParseDescriptions(String),
+    ParseProjectModel(String)
 }
 
 impl From<io::Error> for DatamodelHCLError {

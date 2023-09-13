@@ -1,7 +1,7 @@
-pub mod project_info;
-mod shortcode;
-mod shortname;
-mod longname;
-mod password;
-mod descriptions;
-mod keywords;
+pub mod project_model;
+
+mod property;
+mod resource;
+mod res_props;
+
+mod label;

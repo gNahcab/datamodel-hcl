@@ -9,6 +9,6 @@ name = "datamodel_hcl"
 path = "src/datamodel_hcl/lib.rs"
 
 [dependencies]
-clap = { version = "4.4.1", features = ["derive"] } # command-line parser
+clap = { version = "4.4.0", features = ["derive"] } # command-line parser
 hcl-rs = "0.16.4" # HCL parser
 anyhow = "1.0.75"
