@@ -25,4 +25,34 @@ impl TryFrom<&hcl::Block> for Resource {
     }
 }
 
+#[cfg(test)]
+
+mod test {
+    use hcl::{block};
+    use crate::domain::resource::Resource;
+    use crate::errors::DatamodelHCLError;
+
+    #[test]
+    fn test_into_resource() {
+        let resource_block = &block!(
+             StillImageRepresentation "Image2D" {
+    labels {
+      en = ""
+      de = ""
+      fr = ""
+      it = ""
+    }
+      hasTitle {
+        cardinality = "1"
+        gui_order = "0"
+      }
+  }
+        );
+
+        let resource:Result<Resource, DatamodelHCLError> = resource_block.try_into();
+
+        assert!(resource.is_ok())
+
+    }
+}
 

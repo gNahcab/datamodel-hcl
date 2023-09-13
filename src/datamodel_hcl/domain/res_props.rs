@@ -16,4 +16,24 @@ impl TryFrom<&hcl::Block> for ResProp {
         todo!()
     }
 }
+#[cfg(test)]
+
+mod test {
+    use hcl::{block, body};
+    use crate::domain::res_props::ResProp;
+    use crate::errors::DatamodelHCLError;
+
+    #[test]
+    fn test_into_res_props() {
+        let res_props_block = &block!(
+              hasTitle {
+        cardinality = "1"
+        gui_order = "0"
+      }
+        );
+        let res_props: Result<ResProp, DatamodelHCLError> = res_props_block.try_into();
+
+        assert!(res_props.is_ok());
+    }
+}
 

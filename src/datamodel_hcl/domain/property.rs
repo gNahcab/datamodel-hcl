@@ -18,3 +18,26 @@ impl TryFrom<&hcl::Block> for Property {
         todo!()
     }
 }
+#[cfg(test)]
+
+mod test {
+    use hcl::{block};
+    use crate::domain::property::Property;
+    use crate::errors::DatamodelHCLError;
+
+    #[test]
+    fn test_into_property() {
+        let property_block = &block!(
+            property "hasTextMedium" {
+                object = "StillImageRepresentation"
+                labels {
+                    en = "my text medium"
+                    de = "mein Schriftmedium"
+                    fr = "mon médium d'écriture"
+                }
+            }
+        );
+        let property:Result<Property, DatamodelHCLError> = property_block.try_into();
+        assert!(property.is_ok());
+    }
+}
