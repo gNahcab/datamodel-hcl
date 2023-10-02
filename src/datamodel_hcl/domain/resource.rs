@@ -64,7 +64,8 @@ impl TryFrom<&hcl::Block> for Resource {
 
         // read label
         let label_block = blocks.get(0).ok_or(
-            DatamodelHCLError::ParseProjectModel(String::from("couldn't read label of resource '{}'. Does Label exist?")));
+            DatamodelHCLError::ParseProjectModel(String::from(format!("couldn't read label of resource '{:?}'. Does Label exist?", block.labels()))));
+
         let attributes: Vec<&Attribute> = label_block?.body.attributes().collect();
         for attribute in attributes {
             let label: Label = attribute.try_into()?;
