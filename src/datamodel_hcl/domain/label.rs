@@ -1,4 +1,4 @@
-use hcl::{Attribute, Block, Body, body, Expression};
+use hcl::{Attribute};
 use crate::errors::DatamodelHCLError;
 
 #[derive(Debug, PartialEq)]

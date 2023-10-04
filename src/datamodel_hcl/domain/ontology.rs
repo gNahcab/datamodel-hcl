@@ -18,7 +18,7 @@ impl TryFrom<&hcl::Block> for Ontology {
         let result = block.labels.get(0).ok_or(DatamodelHCLError::ParseProjectModel(String::from(format!("wasn't able to read the name from ontology '{:?}'", block.labels()))));
         let name = match result {
             Ok(value) => value.as_str(),
-            Err(parseError) => return Err(parseError),
+            Err(parse_error) => return Err(parse_error),
         };
         let attributes: Vec<&Attribute> = block.body.attributes().collect();
         if attributes.len() != 1 {
@@ -41,7 +41,6 @@ impl TryFrom<&hcl::Block> for Ontology {
 mod test {
     use hcl::{block};
     use crate::domain::ontology::Ontology;
-    use crate::domain::property::Property;
     use crate::errors::DatamodelHCLError;
 
     #[test]

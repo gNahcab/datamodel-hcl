@@ -1,26 +1,7 @@
-use std::fmt::format;
-use hcl::{Attribute, Block, Body};
+use hcl::{Attribute, Block};
 use crate::domain::label::Label;
 use crate::domain::res_props::ResProp;
-use crate::domain::resource::Types::{Normal,StillImageRepresentation};
 use crate::errors::DatamodelHCLError;
-
-#[derive(Debug, PartialEq)]
-pub enum Types {
-    Normal,
-    StillImageRepresentation,
-}
-
-impl Types {
-    fn new(resource_type: &str) -> Result<Types, DatamodelHCLError> {
-        match resource_type {
-            "Resource" => Ok(Normal),
-            "StillImageRepresentation" => Ok(StillImageRepresentation),
-            _ => Err(DatamodelHCLError::ParseProjectModel(String::from("found unknown type for Resource"))),
-             }
-    }
-
-}
 
 
 #[derive(Debug, PartialEq)]
@@ -28,12 +9,12 @@ pub struct Resource{
     pub name: String,
     pub labels: Vec<Label>,
     pub res_props: Vec<ResProp>,
-    pub res_type: Types,
+    pub res_type: String,
 }
 
 
 impl Resource {
-    pub fn new(name: &str, labels: Vec<Label>, res_props: Vec<ResProp>, res_type: Types ) -> Self {
+    pub fn new(name: &str, labels: Vec<Label>, res_props: Vec<ResProp>, res_type: String ) -> Self {
         Self{
             name:String::from(name),
             labels,
@@ -47,12 +28,7 @@ impl TryFrom<&hcl::Block> for Resource {
     type Error = DatamodelHCLError;
 
     fn try_from(block: &Block) -> Result<Self, Self::Error> {
-
-
-        // Restype
-        let resource_type = block.identifier();
-        let resource_type = Types::new(resource_type)?;
-
+        let resource_type = block.identifier.to_string();
         // Resource name
         let name  =
             block.labels().get(0).ok_or(DatamodelHCLError::ParseProjectModel(

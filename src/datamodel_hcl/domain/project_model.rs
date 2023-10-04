@@ -1,5 +1,5 @@
 use std::str::FromStr;
-use hcl::{Attribute, attribute, Block, Body};
+use hcl::{Block, Body};
 use crate::domain::ontology::Ontology;
 
 use crate::domain::property::Property;
@@ -74,9 +74,6 @@ impl TryFrom<hcl::Body> for ProjectModel {
 #[cfg(test)]
 
 mod test {
-    use hcl::{block, body};
-    use crate::errors::DatamodelHCLError;
-
     #[test]
     fn test_into_project_model() {
         todo!()

@@ -1,6 +1,5 @@
 use std::io;
 use std::num::ParseIntError;
-use clap::builder::Str;
 
 #[derive(Debug)]
 pub enum DatamodelHCLError {

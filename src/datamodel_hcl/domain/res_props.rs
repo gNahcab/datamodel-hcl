@@ -1,6 +1,4 @@
-use std::num::ParseIntError;
-use clap::builder::Str;
-use hcl::{Attribute, Block, Body, body, Error};
+use hcl::{Block};
 use crate::errors::DatamodelHCLError;
 
 #[derive(Debug, PartialEq)]
@@ -45,7 +43,7 @@ impl TryFrom<&hcl::Block> for ResProp {
 #[cfg(test)]
 
 mod test {
-    use hcl::{block, body};
+    use hcl::{block};
     use crate::domain::res_props::ResProp;
     use crate::errors::DatamodelHCLError;
 
