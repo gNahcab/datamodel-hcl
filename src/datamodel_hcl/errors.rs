@@ -7,6 +7,7 @@ pub enum DatamodelHCLError {
     ParseHcl(hcl::Error),
     ParseInt(ParseIntError),
     ParseProjectModel(String),
+    ValidationError(String),
 }
 
 impl From<io::Error> for DatamodelHCLError {

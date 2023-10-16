@@ -10,17 +10,13 @@ pub fn load_datamodel<P: AsRef<Path>>(path: P) -> Result<ProjectModel, Datamodel
     let input = std::fs::read_to_string(path);
     let inputstr = match input {
         Ok(str_) => str_,
-        Err(_) => std::string::String::from("input error"),
+        Err(_) => std::string::String::from("input string error"),
     };
     let body:hcl::Body = hcl::from_str(&inputstr).expect("couldn't parse body");
     // call parser method
-    let result: ProjectModel= body.try_into().unwrap();
-    Ok(result)
+    body.try_into()
 }
 
-pub fn validate(project_model: ProjectModel) {
-    unimplemented!()
-}
 
 
 

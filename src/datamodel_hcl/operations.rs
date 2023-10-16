@@ -5,15 +5,14 @@ use crate::domain::project_model::ProjectModel;
 
 
 pub fn import<P: AsRef<Path>>(project_path: &P) -> () {
-    let project: Result<ProjectModel, DatamodelHCLError> =  load_datamodel(project_path);
-    validate(project.unwrap());
+    let result: Result<ProjectModel, DatamodelHCLError> =  load_datamodel(project_path);
 }
 
 
 
 #[cfg(test)]
 mod test {
-    use crate::load_datamodel;
+    use crate::{load_datamodel, validate};
 
     #[test]
     fn test_import() {
@@ -21,7 +20,4 @@ mod test {
         let result = load_datamodel(path);
         assert!(result.is_ok())
     }
-
-
-
 }

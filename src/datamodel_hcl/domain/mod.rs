@@ -1,8 +1,8 @@
 pub mod project_model;
 
-mod ontology;
-mod property;
-mod resource;
+pub(crate) mod ontology;
+pub(crate) mod property;
+pub(crate) mod resource;
 mod res_props;
 
 mod label;
