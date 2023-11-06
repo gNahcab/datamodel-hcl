@@ -5,4 +5,5 @@ pub(crate) mod property;
 pub(crate) mod resource;
 mod res_props;
 
+mod builders;
 mod label;

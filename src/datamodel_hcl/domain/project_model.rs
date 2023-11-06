@@ -1,10 +1,12 @@
 use std::str::FromStr;
 use hcl::{Block, Body};
-use crate::domain::ontology::Ontology;
+use crate::domain::builders::Builder;
+use crate::domain::ontology::{OntologyWrapper, Ontology};
 
-use crate::domain::property::Property;
-use crate::domain::resource::Resource;
+use crate::domain::property::{PropertyWrapper, Property};
+use crate::domain::resource::{ResourceWrapper, Resource};
 use crate::errors::DatamodelHCLError;
+use crate::domain::builders::project_model::ProjectModelBuilder;
 
 
 
@@ -13,8 +15,19 @@ pub struct ProjectModel {
     pub ontologies: Vec<Ontology>,
     pub properties: Vec<Property>,
     pub resources: Vec<Resource>,
-}
 
+}
+impl ProjectModel {
+    pub(crate) fn new(ontologies:  Vec<Ontology>,
+                      properties:  Vec<Property>,
+                      resources:  Vec<Resource>) -> Self {
+        ProjectModel{
+            ontologies,
+            properties,
+            resources,
+        }
+    }
+}
 
 impl TryFrom<hcl::Body> for ProjectModel {
 
@@ -23,54 +36,36 @@ impl TryFrom<hcl::Body> for ProjectModel {
     // below build: https://refactoring.guru/design-patterns/builder/rust/example, lower layers: with to_ to builder (see 'to_':https://rust-lang.github.io/api-guidelines/naming.html)
 
     fn try_from(body: Body) -> Result<Self, Self::Error> {
-        let mut ontologies: Vec<Ontology> = vec![];
-        let mut properties: Vec<Property> = vec![];
-        let mut resources: Vec<Resource> = vec![];
+        let mut project_model_builder: ProjectModelBuilder = ProjectModelBuilder::new();
 
         let attributes: Vec<&hcl::Attribute> = body.attributes().collect();
         for attribute in attributes {
             match attribute.key() {
-                _ => return Err(DatamodelHCLError::ParseProjectModel(String::from(format!("found invalid attribute-name: '{}'. no attributes are allowed on top-level", attribute.key())))),
+                _ => return Err(DatamodelHCLError::ParseProjectModel(String::from(format!("found top attribute-name: '{}'. no attributes are allowed on top-level", attribute.key())))),
             }
         }
-
-        let blocks: Vec<&Block> = body.blocks().collect();
-        for block in blocks {
-            match block.identifier() {
+        let blocks: Vec<&hcl::Block> = body.blocks().collect();
+        for block in blocks{
+            match block.identifier() as &str {
                 "ontology" => {
-                   let ontology:Result<Ontology, DatamodelHCLError> = block.try_into();
-                    ontologies.push(ontology.unwrap());
+                    let ontology:Ontology = OntologyWrapper { 0:  block.to_owned()}.to_ontology()?;
+                    &project_model_builder.add_to_ontology(ontology);
                 }
                 "property" => {
-                    let property = block.try_into();
-                    properties.push(property.unwrap())
+                    let property = PropertyWrapper{0: block.to_owned()}.to_property()?;
+                    &project_model_builder.add_to_properties(property);
                 },
-                "Resource" => {
-                    let resource = block.try_into();
-                    resources.push(
-                        resource.unwrap())
+                "Resource" | "StillImageRepresentation" => {
+                    let resource = ResourceWrapper{0: block.to_owned()}.to_resource()?;
+                    &project_model_builder.add_to_resources(resource);
                 },
-                "StillImageRepresentation" =>{
-                    let still_image = block.try_into();
-                    resources.push(still_image.unwrap())
-                } ,
-
                 _ => return Err(DatamodelHCLError::ParseProjectModel(
                     String::from(format!("found invalid block-name: '{}'. Only 'property', 'Resource', 'StillImageRepresentation' allowed", block.identifier())))),
             }
         }
-        let project_model = ProjectModel {
-            ontologies,
-            properties,
-            resources,
-        };
-
-        Ok(project_model)
-
+        project_model_builder.build()
     }
 }
-
-
 
 
 #[cfg(test)]

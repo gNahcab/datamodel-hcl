@@ -7,13 +7,12 @@ pub struct ResProp {
     cardinality: String,
     gui_order: String,
 }
+pub struct ResPropWrapper (pub(crate) hcl::Block);
 
-impl TryFrom<&hcl::Block> for ResProp {
-    type Error = DatamodelHCLError;
-
-    fn try_from(block: &Block) -> Result<Self, Self::Error> {
-        let propname = block.identifier.as_str();
-        let attributes:Vec<&hcl::Attribute> = block.body.attributes().collect();
+impl ResPropWrapper {
+    pub fn to_res_prop(&self) -> Result<ResProp, DatamodelHCLError> {
+        let propname = self.0.identifier.as_str();
+        let attributes:Vec<&hcl::Attribute> = self.0.body.attributes().collect();
         let mut cardinality = std::string::String::from("");
         let mut gui_order =  std::string::String::from("");
         for attribute in attributes {
@@ -28,34 +27,33 @@ impl TryFrom<&hcl::Block> for ResProp {
                                  Only 'cardinality and 'gui_order' are valid.", attribute.key()))))}
 
         }
-
-
-
-        let res_prop = ResProp{
-            name: String::from(propname),
-            cardinality: String::from(cardinality),
-            gui_order: gui_order,
+       let res_prop = ResProp{
+            name: propname.to_owned(),
+            cardinality: cardinality.to_owned(),
+            gui_order: gui_order.to_owned(),
         };
-        Ok(res_prop)
 
+        Ok(res_prop)
     }
+
 }
+
 #[cfg(test)]
 
 mod test {
     use hcl::{block};
-    use crate::domain::res_props::ResProp;
+    use crate::domain::res_props::{ResProp, ResPropWrapper};
     use crate::errors::DatamodelHCLError;
 
     #[test]
     fn test_into_res_props() {
-        let res_props_block = &block!(
+        let res_props_block = block!(
               hasTitle {
                 cardinality = "1"
                 gui_order = "0"
             }
         );
-        let res_props: Result<ResProp, DatamodelHCLError> = res_props_block.try_into();
+        let res_props: Result<ResProp, DatamodelHCLError> = ResPropWrapper{0: res_props_block}.to_res_prop();
 
         assert!(res_props.is_ok());
     }

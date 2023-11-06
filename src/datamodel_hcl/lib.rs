@@ -14,7 +14,8 @@ pub fn load_datamodel<P: AsRef<Path>>(path: P) -> Result<ProjectModel, Datamodel
     };
     let body:hcl::Body = hcl::from_str(&inputstr).expect("couldn't parse body");
     // call parser method
-    body.try_into()
+    let datamodel: ProjectModel = body.try_into()?;
+    Ok(datamodel)
 }
 
 
