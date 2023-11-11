@@ -5,7 +5,7 @@ use crate::domain::project_model::ProjectModel;
 
 
 pub fn import<P: AsRef<Path>>(project_path: &P) -> () {
-      load_datamodel(project_path);
+    load_datamodel(project_path).expect("import must be aborted due to an error");
 }
 
 
@@ -16,6 +16,9 @@ mod test {
 
     #[test]
     fn test_import() {
-       todo!()
+        let result =
+            load_datamodel("data/testdata/rosetta.hcl");
+        assert!(result.is_ok());
+
     }
 }

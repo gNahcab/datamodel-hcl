@@ -1,3 +1,4 @@
+use std::any::type_name;
 use crate::domain::ontology::Ontology;
 use crate::domain::project_model::ProjectModel;
 use crate::domain::property::Property;
@@ -37,13 +38,30 @@ impl Builder for ProjectModelBuilder {
         self.resources.push(resource);
     }
 
-    fn project_model_is_correct(&self) -> bool {
-        false
+    fn project_model_is_correct(&self) -> Result<(), DatamodelHCLError> {
+        // check if propnames of resources consistent with properties
+        //todo get a vec of all properties names and check if every prop-name of a resource is part of properties
+        let mut properties_names = vec![];
+        for _property in &self.properties {
+            properties_names.push(_property.name.to_string());
+        }
+        for _resource in &self.resources {
+            for _res_prop in &_resource.res_props {
+                if !properties_names.contains(&_res_prop.name) {
+                    return Err(DatamodelHCLError::ValidationError(
+                        String::from(format!("resource-prop '{:?}' of resource {:?}",
+                                             _res_prop, _resource.name))));
+                }
+            }
+        }
+        // check that ontologies in file are declared as ontologies if mentioned in resource
+
+        Ok(())
     }
 
 fn build(self) -> Result<ProjectModel, DatamodelHCLError> {
-    if !self.project_model_is_correct() {
-          return Err(DatamodelHCLError::ValidationError(String::from("data model not consistent")))
+    if !self.project_model_is_correct().is_ok() {
+          return Err(DatamodelHCLError::ValidationError(String::from("cannot build: data model not consistent")))
     }
        Ok(ProjectModel::new(
            self.ontologies,

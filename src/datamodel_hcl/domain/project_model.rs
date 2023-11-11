@@ -32,9 +32,6 @@ impl ProjectModel {
 impl TryFrom<hcl::Body> for ProjectModel {
 
     type Error = DatamodelHCLError;
-    // REFACTOR COMPLETELY top layer: try-into
-    // below build: https://refactoring.guru/design-patterns/builder/rust/example, lower layers: with to_ to builder (see 'to_':https://rust-lang.github.io/api-guidelines/naming.html)
-
     fn try_from(body: Body) -> Result<Self, Self::Error> {
         let mut project_model_builder: ProjectModelBuilder = ProjectModelBuilder::new();
 
@@ -68,14 +65,5 @@ impl TryFrom<hcl::Body> for ProjectModel {
 }
 
 
-#[cfg(test)]
 
-mod test {
-    #[test]
-    fn test_into_project_model() {
-        todo!()
-    }
-
-
-}
 

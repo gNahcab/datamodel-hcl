@@ -16,6 +16,6 @@ pub trait Builder {
     fn add_to_properties(&mut self, property:Property);
     fn add_to_resources(&mut self, resource:Resource);
 
-    fn project_model_is_correct(&self) -> bool;
+    fn project_model_is_correct(&self) -> Result<(), DatamodelHCLError>;
     fn build(self) -> Result<ProjectModel, DatamodelHCLError>;
 }

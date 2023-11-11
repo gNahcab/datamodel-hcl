@@ -60,12 +60,10 @@ mod test {
                     de = "mein Schriftmedium"
                     fr = "mon médium d'écriture"
                 }
-                gui_element = "todo!"
+                gui_element = "facultative"
             }
         );
         let label = LabelBlockWrapper{ 0: block }.to_labels();
-        println!("{:?}", label);
-
         assert!(label.is_ok())
     }
 }

@@ -3,7 +3,7 @@ use crate::errors::DatamodelHCLError;
 
 #[derive(Debug, PartialEq)]
 pub struct ResProp {
-    name: String,
+    pub(crate) name: String,
     cardinality: String,
     gui_order: String,
 }
