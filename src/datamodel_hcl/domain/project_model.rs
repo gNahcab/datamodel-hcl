@@ -43,7 +43,7 @@ impl TryFrom<hcl::Body> for ProjectModel {
         }
         let blocks: Vec<&hcl::Block> = body.blocks().collect();
         for block in blocks{
-            match block.identifier() as &str {
+            match block.identifier() {
                 "ontology" => {
                     let ontology:Ontology = OntologyWrapper { 0:  block.to_owned()}.to_ontology()?;
                     &project_model_builder.add_to_ontology(ontology);

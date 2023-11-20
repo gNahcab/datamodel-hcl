@@ -1,4 +1,4 @@
-use hcl::{Attribute, Block, block};
+use hcl::{Attribute, Block, block, BlockLabel};
 use crate::errors::DatamodelHCLError;
 use crate::domain::label::{Label, LabelBlockWrapper, LabelWrapper};
 
@@ -13,53 +13,123 @@ pub struct Property {
 }
 pub(crate) struct PropertyWrapper(pub(crate) hcl::Block);
 
+struct TransientStructureProperty {
+    propname: String,
+    object: Option<String>,
+    ontology: Option<String>,
+    labels: Vec<Label>,
+    gui_element: Option<String>,
+}
+
+impl TransientStructureProperty {
+    fn new() -> TransientStructureProperty {
+        TransientStructureProperty {
+            propname: "".to_string(),
+            object: None,
+            ontology: None,
+            labels: vec![],
+            gui_element: None,
+        }
+    }
+    pub(crate) fn add_propname(&mut self, labels: Vec<BlockLabel>) -> Result<(), DatamodelHCLError> {
+        if labels.len() > 1 {
+           return Err(DatamodelHCLError::ValidationError(String::from(format!("too many propnames in '{:?}'", labels))));
+        }
+        if labels.len()  == 0 {
+            return Err(DatamodelHCLError::ValidationError(String::from(format!("not enough propnames: '{:?}'", labels))));
+        }
+        let propname = labels.get(0).expect(&*format!("cannot parse propname {:?}", labels.get(0))).clone().into_inner();
+        self.propname = propname;
+        Ok(())
+    }
+
+    pub(crate) fn add_gui_element(&mut self, new_gui_element: String) -> Result<(), DatamodelHCLError> {
+        if !self.gui_element.is_none() {
+            return Err(DatamodelHCLError::ValidationError(String::from(format!("it was tried to add more than one gui_element: '{:?}'", new_gui_element))));
+        }
+        self.gui_element = Option::from(new_gui_element);
+        Ok(())
+    }
+    pub(crate) fn add_ontology(&mut self, new_ontology: String) ->  Result<(), DatamodelHCLError> {
+        if !self.ontology.is_none() {
+            return Err(DatamodelHCLError::ValidationError(String::from(format!("it was tried to add more than one ontology: '{:?}'", new_ontology))));
+        }
+        self.ontology = Option::from(new_ontology);
+        Ok(())
+    }
+    pub(crate) fn add_object(&mut self, new_object: String) ->  Result<(), DatamodelHCLError> {
+        if !self.object.is_none() {
+            return Err(DatamodelHCLError::ValidationError(String::from(format!("it was tried to add more than one object: '{:?}'", new_object))));
+        }
+        self.object = Option::from(new_object);
+        Ok(())
+    }
+    pub(crate) fn add_labels(&mut self, blocks: Vec<&Block>) -> Result<(), DatamodelHCLError> {
+        if blocks.len() > 1 {
+            return Err(DatamodelHCLError::ParseProjectModel(String::from(
+                format!("found '{}' block(s) in '{}'. One block is necessary but not more blocks are allowed",blocks.len(), self.propname))));
+        }
+        if blocks.len() == 0 {
+            return Err(DatamodelHCLError::ParseProjectModel(String::from(format!("found '{}' block(s) in '{}'. One and only one block is necessary",blocks.len(), self.propname))));
+        }
+        let label_block = blocks.get(0).expect("expected to get first and only block");
+        self.labels = LabelBlockWrapper(label_block.to_owned().to_owned()).to_labels()?;
+
+        Ok(())
+    }
+    pub(crate) fn is_complete(&self) -> Result<(), DatamodelHCLError> {
+        if self.propname.is_empty() {
+            return Err(DatamodelHCLError::ValidationError(String::from("propname doesn't exist or isn't provided correctly.")));
+        }
+        // one object
+        if self.object.is_none() {
+            return Err(DatamodelHCLError::ValidationError(String::from("object doesn't exist or isn't provided correctly.")));
+        }
+        // one ontology
+        if self.ontology.is_none() {
+            return Err(DatamodelHCLError::ValidationError(String::from("ontology doesn't exist or isn't provided correctly.")));
+        }
+        // one gui-element
+        if self.gui_element.is_none() {
+            return Err(DatamodelHCLError::ValidationError(String::from("gui_element doesn't exist or isn't provided correctly.")));
+        }
+
+        if self.labels.len() < 1 {
+            return Err(DatamodelHCLError::ValidationError(String::from("labels seem to be empty.")));
+        }
+        Ok(())
+    }
+}
+
+
 impl PropertyWrapper {
     pub fn to_property(self) -> Result<Property, DatamodelHCLError> {
         // one propname
-        if self.0.labels.len() != 1 {
-            return Err(DatamodelHCLError::ParseProjectModel(String::from(format!("propname should have one name and only one name but in '{:?}' found '{}'", self.0.labels(), self.0.labels.len()))));
+        let mut transienstStructureProperty = TransientStructureProperty::new();
+        transienstStructureProperty.add_propname(self.0.labels)?;
 
-        }
-        // one object
-
-        // one ontology
-
-        // one gui-element
-
-        let result = self.0.labels().get(0).ok_or(Err(DatamodelHCLError::ParseProjectModel(String::from(format!("couldn't parse propname '{:?}'", self.0.labels())))));
-        let propname = match result {
-            Ok(propname) => propname.as_str(),
-            Err(prop_error) => return prop_error,
-        };
 
         let attributes: Vec<&hcl::Attribute> = self.0.body.attributes().collect();
 
-        let mut object: String = "".to_string();
-        let mut ontology:String = "".to_string();
-        let mut gui_element:String =  "".to_string();
-
-
         for attribute in attributes {
             match attribute.key.as_str() {
-                "object" => object = attribute.expr.to_string(),
-                "ontology" => ontology = attribute.expr().to_string(),
-                "gui_element" => gui_element= attribute.expr().to_string(),
-                _ => return Err(DatamodelHCLError::ParseProjectModel(String::from(format!("found unknown attribute {} of property {}. Valid attributes are: object, ontology, gui_element", attribute.key.as_str(),  propname))))
+                "object" => transienstStructureProperty.add_object(attribute.expr.to_string())?,
+                "ontology" => transienstStructureProperty.add_ontology(attribute.expr.to_string())?,
+                "gui_element" => transienstStructureProperty.add_gui_element(attribute.expr.to_string())?,
+                _ => return Err(DatamodelHCLError::ParseProjectModel(String::from(format!("found unknown attribute {} of property {}. Valid attributes are: object, ontology, gui_element", attribute.key.as_str(),  transienstStructureProperty.propname))))
             }
         }
         let blocks: Vec<&hcl::Block> = self.0.body.blocks().collect();
-        if blocks.len() != 1 {
-            return Err(DatamodelHCLError::ParseProjectModel(String::from(format!("found '{}' block(s) in '{}'. One block is necessary but not more blocks are allowed",blocks.len(), propname))))
-        }
-        let label_block = blocks.get(0).expect("expected to get first and only block");
-        let labels = LabelBlockWrapper(label_block.to_owned().to_owned()).to_labels()?;
+        transienstStructureProperty.add_labels(blocks);
+
+        transienstStructureProperty.is_complete()?;
 
         let property = Property{
-            name: propname.to_string(),
-            ontology: ontology.to_string(),
-            object: object.to_string(),
-            labels,
-            gui_element: gui_element.to_string(),
+            name: transienstStructureProperty.propname,
+            ontology: transienstStructureProperty.ontology.unwrap(),
+            object: transienstStructureProperty.object.unwrap(),
+            labels: transienstStructureProperty.labels,
+            gui_element: transienstStructureProperty.gui_element.unwrap(),
         };
         Ok(property)
     }

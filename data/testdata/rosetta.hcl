@@ -220,9 +220,11 @@ property "partOf" {
     }
       hasTextMedium{
         cardinality = "0-1"
+        ontology = "rosetta"
       }
     hasInvalidMedium{
       cardinality = "0-1"
+      ontology = "rosetta"
     }
   }
 
@@ -236,6 +238,7 @@ property "partOf" {
       hasTitle {
         cardinality = "1"
         gui_order = "0"
+        ontology = "rosetta"
       }
   }
 
