@@ -10,16 +10,18 @@ pub struct Resource{
     pub labels: Vec<Label>,
     pub res_props: Vec<ResProp>,
     pub res_type: String,
+    pub ontology: String,
 }
 
 
 impl Resource {
-    pub fn new(name: String, labels: Vec<Label>, res_props: Vec<ResProp>, res_type: String ) -> Self {
+    pub fn new(name: String, labels: Vec<Label>, res_props: Vec<ResProp>, res_type: String, ontology: String) -> Self {
         Self{
             name:String::from(name),
             labels,
             res_props,
             res_type,
+            ontology
         }
     }
 }
@@ -31,12 +33,6 @@ struct TransientStructureResource {
     res_props: Vec<ResProp>,
     res_type: Option<String>,
     ontology: Option<String>,
-}
-
-impl TransientStructureResource {
-}
-
-impl TransientStructureResource {
 }
 
 impl TransientStructureResource {
@@ -129,7 +125,7 @@ impl ResourceWrapper {
         }
         transient_structure_resource.is_consistent()?;
 
-        let resource = Resource::new(transient_structure_resource.name.unwrap(), transient_structure_resource.labels, transient_structure_resource.res_props, transient_structure_resource.res_type.unwrap());
+        let resource = Resource::new(transient_structure_resource.name.unwrap(), transient_structure_resource.labels, transient_structure_resource.res_props, transient_structure_resource.res_type.unwrap(), transient_structure_resource.ontology.unwrap());
         Ok(resource)
     }
 }

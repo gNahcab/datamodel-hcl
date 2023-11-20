@@ -105,31 +105,31 @@ impl TransientStructureProperty {
 impl PropertyWrapper {
     pub fn to_property(self) -> Result<Property, DatamodelHCLError> {
         // one propname
-        let mut transienstStructureProperty = TransientStructureProperty::new();
-        transienstStructureProperty.add_propname(self.0.labels)?;
+        let mut transienst_structure_property = TransientStructureProperty::new();
+        transienst_structure_property.add_propname(self.0.labels)?;
 
 
         let attributes: Vec<&hcl::Attribute> = self.0.body.attributes().collect();
 
         for attribute in attributes {
             match attribute.key.as_str() {
-                "object" => transienstStructureProperty.add_object(attribute.expr.to_string())?,
-                "ontology" => transienstStructureProperty.add_ontology(attribute.expr.to_string())?,
-                "gui_element" => transienstStructureProperty.add_gui_element(attribute.expr.to_string())?,
-                _ => return Err(DatamodelHCLError::ParseProjectModel(String::from(format!("found unknown attribute {} of property {}. Valid attributes are: object, ontology, gui_element", attribute.key.as_str(),  transienstStructureProperty.propname))))
+                "object" => transienst_structure_property.add_object(attribute.expr.to_string())?,
+                "ontology" => transienst_structure_property.add_ontology(attribute.expr.to_string())?,
+                "gui_element" => transienst_structure_property.add_gui_element(attribute.expr.to_string())?,
+                _ => return Err(DatamodelHCLError::ParseProjectModel(String::from(format!("found unknown attribute {} of property {}. Valid attributes are: object, ontology, gui_element", attribute.key.as_str(), transienst_structure_property.propname))))
             }
         }
         let blocks: Vec<&hcl::Block> = self.0.body.blocks().collect();
-        transienstStructureProperty.add_labels(blocks);
+        transienst_structure_property.add_labels(blocks);
 
-        transienstStructureProperty.is_complete()?;
+        transienst_structure_property.is_complete()?;
 
         let property = Property{
-            name: transienstStructureProperty.propname,
-            ontology: transienstStructureProperty.ontology.unwrap(),
-            object: transienstStructureProperty.object.unwrap(),
-            labels: transienstStructureProperty.labels,
-            gui_element: transienstStructureProperty.gui_element.unwrap(),
+            name: transienst_structure_property.propname,
+            ontology: transienst_structure_property.ontology.unwrap(),
+            object: transienst_structure_property.object.unwrap(),
+            labels: transienst_structure_property.labels,
+            gui_element: transienst_structure_property.gui_element.unwrap(),
         };
         Ok(property)
     }

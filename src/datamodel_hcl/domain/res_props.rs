@@ -5,7 +5,7 @@ pub struct ResProp {
     pub(crate) name: String,
     cardinality: String,
     gui_order: String,
-    ontology: String,
+    pub(crate) ontology: String,
 }
 
 pub struct ResPropWrapper (pub(crate) hcl::Block);

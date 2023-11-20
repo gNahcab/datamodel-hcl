@@ -1,4 +1,5 @@
-use hcl::{Attribute, Block};
+use hcl::{Attribute, Block, BlockLabel};
+use crate::domain::label::Label;
 use crate::errors::DatamodelHCLError;
 
 #[derive(Debug, PartialEq)]
@@ -6,31 +7,71 @@ pub struct Ontology {
     pub name: String,
     pub label: String
 }
+#[derive(Debug)]
+struct TransientStructureOntology {
+    name: Option<String>,
+    label: Option<String>,
+}
+
+impl TransientStructureOntology {
+    pub(crate) fn add_name(&mut self, name_string: String) -> Result<(), DatamodelHCLError> {
+        if !self.name.is_none() {
+            return Err(DatamodelHCLError::ParseProjectModel(String::from(format!("the ontology '{:?}' should have one name and only one name but the ontology has a second '{}' name", self.label, name_string))));
+        }
+        self.name = Option::from(name_string);
+        Ok(())
+        }
+    pub(crate) fn add_label(&mut self, label_value: String) -> Result<(), DatamodelHCLError> {
+        if !self.label.is_none() {
+            return Err(DatamodelHCLError::ParseProjectModel(String::from(format!("the ontology '{:?}' should have one label and only one label but the ontology has a second '{}' label", self.label, label_value))));
+
+        }
+        self.label = Option::from(label_value);
+        Ok(())
+    }
+    pub(crate) fn is_complete(&self) -> Result<(), DatamodelHCLError> {
+        if self.name.is_none() {
+            return Err(DatamodelHCLError::ParseProjectModel(String::from(format!("the ontology with label '{:?}' doesn't have a name", self.label))));
+        }
+        if self.label.is_none() {
+            return Err(DatamodelHCLError::ParseProjectModel(String::from(format!("the ontology '{:?}' doesn't have a label", self.name))));
+        }
+        Ok(())
+    }
+}
+
+impl TransientStructureOntology {
+    fn new() -> TransientStructureOntology {
+        TransientStructureOntology{
+            name: None,
+            label: None,
+        }
+    }
+}
 
 pub(crate) struct OntologyWrapper(pub(crate) hcl::Block);
 impl OntologyWrapper {
     pub fn to_ontology(&self) -> Result<Ontology, DatamodelHCLError> {
-        if &self.0.labels().len() != &1usize {
-            return Err(DatamodelHCLError::ParseProjectModel(String::from(format!("the ontology '{:?}' should have one name and only one name but the ontology has '{}' name(s)", &self.0.labels(), &self.0.labels().len()))));
+        let mut transient_structure_ontology = TransientStructureOntology::new();
+        let labels = self.0.labels().to_owned();
+        for label in labels {
+            transient_structure_ontology.add_label(label.as_str().to_string())?;
         }
-        let result = &self.0.labels.get(0).ok_or(DatamodelHCLError::ParseProjectModel(String::from(format!("wasn't able to read the name from ontology '{:?}'", &self.0.labels()))));
-        let name = match result {
-            Ok(value) => value.as_str(),
-            Err(parse_error) => return Err(DatamodelHCLError::ParseProjectModel(format!("{:?}", parse_error))),
-        };
         let attributes: Vec<&Attribute> = self.0.body.attributes().collect();
-
-        if attributes.len() != 1 {
-            return Err(DatamodelHCLError::ParseProjectModel(
-                String::from(format!(
-                    "the ontology '{:?}' should have one labels and only one label but ontology '{:?}' has '{}' label(s)", name, attributes, attributes.len()))));
+        for attribute in attributes {
+            match attribute.key.as_str() {
+                "label" => {
+                    transient_structure_ontology.add_label(attribute.expr.to_string())?;
+                }
+                _ => {
+                    return Err(DatamodelHCLError::ValidationError(String::from(format!(
+                        "only 'label' allowed for ontology but found '{:?}' in ontology '{:?}'",attribute, transient_structure_ontology.name))));
+                }
+            }
         }
-        let result = attributes.get(0).ok_or(DatamodelHCLError::ParseProjectModel(String::from(format!("wasn't able to read the label from ontology '{:?}'", name))));
-        let label = match result {
-            Ok(value) => value.expr().to_string(),
-            Err(parse_error) => return Err(parse_error),
-        };
-        let ontology = Ontology{name: name.to_string(), label:label.to_string()};
+        transient_structure_ontology.is_complete()?;
+
+        let ontology = Ontology{name:transient_structure_ontology.name.unwrap(), label:transient_structure_ontology.label.unwrap()};
         Ok(ontology)
     }
 }
@@ -44,7 +85,7 @@ mod test {
     #[test]
     fn test_to_ontology() {
         let ontology_block = block!(
-            ontology "rosetta" {
+            ontology "rosetta" "root" {
               label = "rosetta_label"
             }
         );

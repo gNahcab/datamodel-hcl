@@ -13,30 +13,35 @@ pub struct ProjectModelBuilder {
     pub resources: Vec<Resource>,
 }
 
-fn are_propnames_consistent_with_properties(properties_names: &Vec<&str>, propnames: Vec<&str>, resource_name: &str) -> Result<(), DatamodelHCLError> {
-    let result: Vec<_> = propnames.iter().filter(|propname| properties_names.contains(&propname)).collect();
+fn are_propnames_consistent_with_properties(property_names: &Vec<&str>, propnames: Vec<&str>, resource_name: &str) -> Result<(), DatamodelHCLError> {
+    let result: Vec<_> = propnames.iter().filter(|propname| !property_names.contains(&propname)).collect();
+    // result.len() == 0 means all values of Vec<&str> 'propnames' exist in Vec<&str> property_names'
     if result.len() != 0 {
         return Err(DatamodelHCLError::ValidationError(String::from(format!("propnames '{:?}' in resource '{:?}' don't exist in properties!", result, resource_name))));
     }
     Ok(())
 }
 
-fn do_mentioned_ontologies_exist() -> () {
-    //ontology-names can be found in ResProp-structures
-    unimplemented!()
+fn do_ontology_names_of_propnames_exist(ontology_names: &Vec<&str>, ontology_names_res_props: Vec<&str>, resource_name: &str) -> Result<(), DatamodelHCLError> {
+    // checks if ontologies that are mentioned down in propnames of resource exist in the datamodel
+    let result_res_props: Vec<_> = ontology_names_res_props.iter().filter(|ontology_name_resource| !ontology_names.contains(&ontology_name_resource)).collect();
+    // result.len() == 0 means all values of Vec<&str> 'ontology_names_res_props' exist in Vec<&str> ontology_names'
+    if result_res_props.len() != 0 {
+        return Err(DatamodelHCLError::ValidationError(String::from(format!("ontology-names of res-prop '{:?}' in resource '{:?}' don't exist in properties!", result_res_props, resource_name))));
+    }
+    Ok(())
 }
 fn project_model_is_correct(project_model_builder: &ProjectModelBuilder) -> Result<(), DatamodelHCLError> {
     // check that ontologies in file are declared as ontologies if mentioned in resource
-    let properties_names:Vec<&str> = project_model_builder.properties.iter().map(|property| property.name.as_str()).collect();
+    let property_names:Vec<&str> = project_model_builder.properties.iter().map(|property| property.name.as_str()).collect();
+    let ontology_names:Vec<&str> = project_model_builder.ontologies.iter().map(|ontology| ontology.name.as_str()).collect();
     for resource in &project_model_builder.resources {
-        let is_consistent_or_not =  are_propnames_consistent_with_properties(&properties_names,resource.res_props.iter().map(|prop| prop.name.as_str()).collect(),resource.name.as_str());
-        if is_consistent_or_not.is_err() {
-            return is_consistent_or_not;
-        }
-        println!("resource {:?}", resource.name)
+         are_propnames_consistent_with_properties(&property_names, resource.res_props.iter().map(|prop| prop.name.as_str()).collect(), resource.name.as_str())?;
+         do_ontology_names_of_propnames_exist(&ontology_names, resource.res_props.iter().map(|prop| prop.ontology.as_str()).collect(), resource.name.as_str())?;
+         if !ontology_names.contains(&resource.ontology.as_str()) {
+             return Err(DatamodelHCLError::ValidationError(String::from(format!("'ontology name '{}' of resource '{}' not defined as ontology", resource.ontology.as_str(), resource.name.as_str()))));
+         }
     }
-
-    //do_mentioned_ontologies_exist();
     Ok(())
 }
 
@@ -82,7 +87,7 @@ fn build(self) -> Result<ProjectModel, DatamodelHCLError> {
 
 mod test {
     use crate::domain::builders::Builder;
-    use crate::domain::builders::project_model::{are_propnames_consistent_with_properties, ProjectModelBuilder};
+    use crate::domain::builders::project_model::{are_propnames_consistent_with_properties, do_ontology_names_of_propnames_exist, ProjectModelBuilder};
 
     #[test]
     fn test_project_model_is_correct() {
@@ -106,22 +111,15 @@ mod test {
         let  propnames_of_resource_part= vec!["property_name_1","property_name_2","property_name_7"];
 
         let result_part = are_propnames_consistent_with_properties(&properties_names, propnames_of_resource_part, "a_random_resource");
-        assert!(result_part.is_ok());
+        assert!(result_part.is_err());
 
     }
     #[test]
-    fn experiment() {
-        let properties_names = vec!["property_name_1","property_name_2","property_name_3","property_name_4","property_name_5"];
-        let  propnames_of_resource_part= vec!["property_name_1","property_name_2","property_name_7"];
-        println!("{:?}", properties_names.contains(&"property_name_1"));
-        println!("{:?}", properties_names.iter().filter(|propname| propname == &&"property_name_1"));
-        let vec_int = [1,2,3];
-        let string_vec = ["a".to_string(), "b".to_string(), "c".to_string()];
-        let result: Vec<&String> = string_vec.iter().filter(|string|  &&"b".to_string() == string).collect();
-        println!("{:?}", result);
-
-
-
+    fn test_mentioned_ontologies_exist() {
+        let ontology_names = vec!["rosetta", "social_science_project", "new_project", "history_project"];
+        let ontology_names_res_props = vec!["rosetta", "a_project"];
+        let result = do_ontology_names_of_propnames_exist(&ontology_names, ontology_names_res_props, "a_random_resource");
+        assert!(result.is_err());
     }
 
 
