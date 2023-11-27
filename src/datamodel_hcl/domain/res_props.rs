@@ -118,13 +118,20 @@ mod test {
     fn test_into_res_props() {
         let res_props_block = block!(
               hasTitle {
+                ontology = "rosetta"
                 cardinality = "1"
                 gui_order = "0"
             }
         );
         let res_props: Result<ResProp, DatamodelHCLError> = ResPropWrapper{0: res_props_block}.to_res_prop();
+        println!("{:?}", res_props);
 
         assert!(res_props.is_ok());
+        assert!(res_props.as_ref().is_ok());
+        assert_eq!(res_props.as_ref().unwrap().name, "hasTitle");
+        assert_eq!(res_props.as_ref().unwrap().cardinality, "1");
+        assert_eq!(res_props.as_ref().unwrap().gui_order, "0");
+        assert_eq!(res_props.as_ref().unwrap().ontology, "rosetta");
     }
 }
 

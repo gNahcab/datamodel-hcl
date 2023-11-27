@@ -1,5 +1,6 @@
 use hcl::{Attribute, Block, BlockLabel};
 use crate::domain::label::{Label, LabelBlockWrapper};
+use crate::domain::remove_useless_quotation_marks;
 use crate::domain::res_props::{ResProp, ResPropWrapper};
 use crate::errors::DatamodelHCLError;
 
@@ -50,12 +51,13 @@ impl TransientStructureResource {
     }
     pub(crate) fn add_res_type(&mut self, identifier: String) {
         self.res_type = Option::from(identifier);
-
     }
     pub(crate) fn add_ontology(&mut self, onto_string: String) -> Result<(), DatamodelHCLError> {
         if !self.ontology.is_none() {
             return Err(DatamodelHCLError::ValidationError(format!("ontology should exist once, found more than once for '{:?}'", self)));
         }
+        let onto_string = remove_useless_quotation_marks(onto_string);
+        println!("add {:?}", onto_string.as_str());
         self.ontology = Option::from(onto_string);
         Ok(())
     }
@@ -74,6 +76,7 @@ impl TransientStructureResource {
             return Err(DatamodelHCLError::ValidationError(format!("couldn't find name for resource '{:?}'", self)));
         }
         if self.res_type.is_none() {
+            //todo! Error by where they happen, like RessourceValidationErrror
             return Err(DatamodelHCLError::ValidationError(format!("couldn't find res_type for resource '{:?}'", self)));
         }
         if self.ontology.is_none() {
@@ -102,6 +105,7 @@ impl ResourceWrapper {
         for label in &labels {
             match label.key.as_str() {
                 "ontology" => {
+                    println!("add {:?}", label.expr.to_string());
                     transient_structure_resource.add_ontology(label.expr.to_string());
                 }
                 _ => {
@@ -157,9 +161,10 @@ mod test {
   }
         );
         let resource:Result<Resource, DatamodelHCLError> = ResourceWrapper{0: resource_block}.to_resource();
-        println!("{:?}", resource.as_ref().unwrap().labels.get(0).unwrap().text.to_string() == "add label");
-        assert!(resource.is_ok())
-
+        assert!(resource.as_ref().is_ok());
+        assert_eq!(resource.as_ref().unwrap().name, "Image2D");
+        assert_eq!(resource.as_ref().unwrap().res_type, "StillImageRepresentation");
+        assert_eq!(resource.as_ref().unwrap().ontology, "rosetta");
     }
 }
 

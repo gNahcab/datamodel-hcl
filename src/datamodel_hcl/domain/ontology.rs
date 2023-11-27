@@ -1,5 +1,6 @@
 use hcl::{Attribute, Block, BlockLabel};
 use crate::domain::label::Label;
+use crate::domain::remove_useless_quotation_marks;
 use crate::errors::DatamodelHCLError;
 
 #[derive(Debug, PartialEq)]
@@ -26,7 +27,8 @@ impl TransientStructureOntology {
             return Err(DatamodelHCLError::ParseProjectModel(String::from(format!("the ontology '{:?}' should have one label and only one label but the ontology has a second '{}' label", self.label, label_value))));
 
         }
-        self.label = Option::from(label_value);
+        let label = remove_useless_quotation_marks(label_value);
+        self.label = Option::from(label);
         Ok(())
     }
     pub(crate) fn is_complete(&self) -> Result<(), DatamodelHCLError> {
@@ -55,7 +57,7 @@ impl OntologyWrapper {
         let mut transient_structure_ontology = TransientStructureOntology::new();
         let labels = self.0.labels().to_owned();
         for label in labels {
-            transient_structure_ontology.add_label(label.as_str().to_string())?;
+            transient_structure_ontology.add_name(label.as_str().to_string())?;
         }
         let attributes: Vec<&Attribute> = self.0.body.attributes().collect();
         for attribute in attributes {
@@ -85,12 +87,13 @@ mod test {
     #[test]
     fn test_to_ontology() {
         let ontology_block = block!(
-            ontology "rosetta" "root" {
+            ontology "rosetta" {
               label = "rosetta_label"
             }
         );
         let hcl_transformer: OntologyWrapper = OntologyWrapper(ontology_block);
         let ontology:Result<Ontology, DatamodelHCLError> = hcl_transformer.to_ontology();
+        println!("{:?}", ontology);
         assert!(ontology.is_ok());
     }
 }
