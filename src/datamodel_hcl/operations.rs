@@ -18,7 +18,6 @@ mod test {
     fn test_import() {
         let result =
             load_datamodel("data/testdata/rosetta.hcl");
-        println!("{:?}", result);
         assert!(result.is_ok());
 
     }

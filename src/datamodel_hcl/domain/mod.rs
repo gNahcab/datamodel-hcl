@@ -11,6 +11,5 @@ mod label;
 
 
 fn remove_useless_quotation_marks(mut string: String) -> String {
-    println!("remove {:?}", string.replace('"',""));
     return string.replace('"', "");
 }

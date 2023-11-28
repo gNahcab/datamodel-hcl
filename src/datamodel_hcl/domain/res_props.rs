@@ -1,3 +1,4 @@
+use crate::domain::remove_useless_quotation_marks;
 use crate::errors::DatamodelHCLError;
 
 #[derive(Debug, PartialEq)]
@@ -34,21 +35,24 @@ impl TransientStructureResProp {
         if !self.ontology.is_none() {
             return Err(DatamodelHCLError::ValidationError(String::from("multiple ontologies were provided to res_prop")));
         }
-        self.ontology = Option::from(new_ontology);
+        let ontology = remove_useless_quotation_marks(new_ontology);
+        self.ontology = Option::from(ontology);
         Ok(())
     }
     pub(crate) fn add_gui_order(&mut self, new_gui_order: String) -> Result<(), DatamodelHCLError> {
         if !self.gui_order.is_none() {
             return Err(DatamodelHCLError::ValidationError(String::from("multiple gui_orders were provided to res_prop")));
         }
-        self.gui_order = Option::from(new_gui_order);
+        let gui_order = remove_useless_quotation_marks(new_gui_order);
+        self.gui_order = Option::from(gui_order);
         Ok(())
     }
     pub(crate) fn add_cardinality(&mut self, new_cardinality: String) -> Result<(), DatamodelHCLError> {
         if !self.cardinality.is_none() {
             return Err(DatamodelHCLError::ValidationError(String::from("multiple cardinalities was provided to res_prop")));
         }
-        self.cardinality = Option::from(new_cardinality);
+        let cardinality = remove_useless_quotation_marks(new_cardinality);
+        self.cardinality = Option::from(cardinality);
         Ok(())
     }
 
@@ -124,14 +128,12 @@ mod test {
             }
         );
         let res_props: Result<ResProp, DatamodelHCLError> = ResPropWrapper{0: res_props_block}.to_res_prop();
-        println!("{:?}", res_props);
-
         assert!(res_props.is_ok());
         assert!(res_props.as_ref().is_ok());
         assert_eq!(res_props.as_ref().unwrap().name, "hasTitle");
+        assert_eq!(res_props.as_ref().unwrap().ontology, "rosetta");
         assert_eq!(res_props.as_ref().unwrap().cardinality, "1");
         assert_eq!(res_props.as_ref().unwrap().gui_order, "0");
-        assert_eq!(res_props.as_ref().unwrap().ontology, "rosetta");
     }
 }
 

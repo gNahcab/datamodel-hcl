@@ -93,8 +93,9 @@ mod test {
         );
         let hcl_transformer: OntologyWrapper = OntologyWrapper(ontology_block);
         let ontology:Result<Ontology, DatamodelHCLError> = hcl_transformer.to_ontology();
-        println!("{:?}", ontology);
         assert!(ontology.is_ok());
+        assert_eq!(ontology.as_ref().unwrap().name,"rosetta");
+        assert_eq!(ontology.as_ref().unwrap().label,"rosetta_label");
     }
 }
 

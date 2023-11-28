@@ -57,7 +57,6 @@ impl TransientStructureResource {
             return Err(DatamodelHCLError::ValidationError(format!("ontology should exist once, found more than once for '{:?}'", self)));
         }
         let onto_string = remove_useless_quotation_marks(onto_string);
-        println!("add {:?}", onto_string.as_str());
         self.ontology = Option::from(onto_string);
         Ok(())
     }
@@ -105,7 +104,6 @@ impl ResourceWrapper {
         for label in &labels {
             match label.key.as_str() {
                 "ontology" => {
-                    println!("add {:?}", label.expr.to_string());
                     transient_structure_resource.add_ontology(label.expr.to_string());
                 }
                 _ => {
