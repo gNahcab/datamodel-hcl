@@ -7,6 +7,8 @@ use crate::domain::project_model::ProjectModel;
 
 
 pub fn load_datamodel<P: AsRef<Path>>(path: P) -> Result<ProjectModel, DatamodelHCLError> {
+    // takes a path to hcl-file
+    // if the hcl-file was correctly formed it returns a ProjectModel, otherwise a DatamodelHCLError
 
     let input = std::fs::read_to_string(path);
     let inputstr = match input {

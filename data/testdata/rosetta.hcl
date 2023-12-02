@@ -241,7 +241,7 @@ property "hasPagenum" {
     de = ""
     fr = ""
   }
-  gui_element = "facultativ?"
+  gui_element = "1-0"
 }
 
 property "partOf" {

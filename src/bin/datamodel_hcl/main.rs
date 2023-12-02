@@ -1,7 +1,9 @@
 pub mod cli;
-use crate::cli::read_in;
+
+use clap::Parser;
+use crate::cli::{Cli, read_in};
 fn main() {
-    let cli = read_in();
+    let cli = Cli::parse();
     dbg!(cli);
  //  let _ = match result {
   //     Ok(res) => handle_success(res),

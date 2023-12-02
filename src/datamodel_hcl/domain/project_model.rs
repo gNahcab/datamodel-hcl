@@ -30,9 +30,9 @@ impl ProjectModel {
 }
 
 impl TryFrom<hcl::Body> for ProjectModel {
-
     type Error = DatamodelHCLError;
     fn try_from(body: Body) -> Result<Self, Self::Error> {
+        // transform a hcl::Body to a ProjectModel
         let mut project_model_builder: ProjectModelBuilder = ProjectModelBuilder::new();
 
         let attributes: Vec<&hcl::Attribute> = body.attributes().collect();
@@ -52,6 +52,7 @@ impl TryFrom<hcl::Body> for ProjectModel {
                     let property = PropertyWrapper{0: block.to_owned()}.to_property()?;
                     &project_model_builder.add_to_properties(property);
                 },
+                //todo: add more Resource types, at the moment only 'Resource' and 'StillImageRepresentation' are allowed
                 "Resource" | "StillImageRepresentation" => {
                     let resource = ResourceWrapper{0: block.to_owned()}.to_resource()?;
                     &project_model_builder.add_to_resources(resource);
