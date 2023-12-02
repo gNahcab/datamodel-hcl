@@ -13,3 +13,4 @@ path = "src/datamodel_hcl/lib.rs"
 clap = { version = "4.4.0", features = ["derive"] } # command-line parser
 hcl-rs = "0.16.4" # HCL parser
 anyhow = "1.0.75"
+office = "0.8.1"
