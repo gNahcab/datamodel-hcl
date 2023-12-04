@@ -134,5 +134,14 @@ mod test {
         assert!(result.is_err());
     }
 
+    #[test]
+    fn test_are_properties_correct() {
+        unimplemented!()
+    }
+
+    #[test]
+    fn test_is_resource_correct() {
+        unimplemented!()
+    }
 
 }

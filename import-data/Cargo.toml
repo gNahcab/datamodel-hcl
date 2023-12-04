@@ -1,0 +1,14 @@
+[package]
+name = "import-data"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+readme = "../README.md"
+description = "imports data from xlsx, modifies it using HCL-scripts and validates it with HCL-Datamodel"
+authors = ["GNahcab"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow.workspace = true
+hcl-rs.workspace = true

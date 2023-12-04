@@ -1,16 +1,18 @@
-[package]
-name = "datamodel-hcl"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+members = [
+    "datamodel-hcl-cli",
+    "import-data",
+    "parse-hcl-datamodel",
+]
+resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[lib]
-name = "datamodel_hcl"
-path = "src/datamodel_hcl/lib.rs"
 
+[workspace.dependencies]
 
-[dependencies]
 clap = { version = "4.4.0", features = ["derive"] } # command-line parser
 hcl-rs = "0.16.4" # HCL parser
 anyhow = "1.0.75"
+arrow = "46.0.0"
 office = "0.8.1"
+

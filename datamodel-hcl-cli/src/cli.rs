@@ -1,4 +1,3 @@
-use datamodel_hcl::errors::DatamodelHCLError;
 use std::path::PathBuf;
 use clap::{Parser, Subcommand};
 
@@ -36,7 +35,7 @@ pub fn read_in() -> () {
 // You can check for the existence of subcommands, and if found use their
     // matches just as you would the top level cmd
     match &cli.command {
-        Some(Commands::Import { project}) => datamodel_hcl::operations::import(project),
+        Some(Commands::Import { project}) => (),
         // Todo: return message "only the following commands have an effect: 'Import'" ?
         None => ()
     }

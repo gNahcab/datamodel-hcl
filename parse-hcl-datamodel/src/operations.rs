@@ -1,11 +1,6 @@
-pub mod errors;
-pub mod domain;
-use crate::errors::DatamodelHCLError;
-pub mod operations;
-use std::path::Path;
 use crate::domain::project_model::ProjectModel;
-
-
+use crate::errors::DatamodelHCLError;
+use std::path::Path;
 pub fn load_datamodel<P: AsRef<Path>>(path: P) -> Result<ProjectModel, DatamodelHCLError> {
     // takes a path to hcl-file
     // if the hcl-file was correctly formed it returns a ProjectModel, otherwise a DatamodelHCLError
@@ -23,6 +18,12 @@ pub fn load_datamodel<P: AsRef<Path>>(path: P) -> Result<ProjectModel, Datamodel
 
 
 
-
-
-
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test_import() {
+        let result =
+            super::load_datamodel("../../../data/testdata/rosetta.hcl");
+        assert!(result.is_ok());
+    }
+}
