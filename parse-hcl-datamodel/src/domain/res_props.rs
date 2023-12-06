@@ -4,8 +4,8 @@ use crate::errors::DatamodelHCLError;
 #[derive(Debug, PartialEq)]
 pub struct ResProp {
     pub(crate) name: String,
-    cardinality: String,
-    gui_order: String,
+    pub(crate) cardinality: String,
+    pub(crate) gui_order: String,
     pub(crate) ontology: String,
 }
 

@@ -12,3 +12,6 @@ authors = ["GNahcab"]
 [dependencies]
 anyhow.workspace = true
 hcl-rs.workspace = true
+arrow.workspace = true
+arrow-csv.workspace = true
+calamine.workspace = true

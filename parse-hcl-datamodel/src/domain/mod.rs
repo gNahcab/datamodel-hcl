@@ -10,6 +10,6 @@ mod label;
 
 
 
-fn remove_useless_quotation_marks(mut string: String) -> String {
+fn remove_useless_quotation_marks(string: String) -> String {
     return string.replace('"', "");
 }

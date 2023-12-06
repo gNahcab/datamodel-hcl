@@ -1,12 +1,8 @@
 use std::path::Path;
-
-
-pub fn load_xlsx<P: AsRef<Path>>(path: P) -> () {
-    let input = std::fs::read_to_string(path);
-    let inputstr = match input {
-        Ok(str_) => str_,
-        Err(_) => std::string::String::from("input string error..is path correct?"),
-    };
+use crate::errors::DataImportError;
+pub fn load_xlsx<P: AsRef<Path>>(path: P) -> Result<(),DataImportError> {
+    let result = crate::adapters::read_xlsx::import_xlsx(path)?;
+    Ok(())
 }
 
 
@@ -14,6 +10,9 @@ pub fn load_xlsx<P: AsRef<Path>>(path: P) -> () {
 mod test {
     #[test]
     fn test_xlsx_import() {
-            super::load_xlsx("../../../data/testdata/OldExcelDocument.xlsx");
+            println!("hi");
+            let result = super::load_xlsx("/Users/gregorbachmann/Documents/Gregor/UniBasel/Masterarbeit/Programmierprojekt/datamodel-hcl/data/testdata/OldExcelDocument.xlsx");
+            println!("result was: {:?}", result);
+            assert!(result.is_ok());
     }
 }

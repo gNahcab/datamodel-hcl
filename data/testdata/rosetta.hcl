@@ -212,7 +212,7 @@ property "hasCreator" {
 
 property "inInstitution" {
   ontology = "rosetta"
-  object = "inInstitution"
+  object = ":Institution"
   labels {
     en = ""
     de = ""

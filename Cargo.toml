@@ -5,7 +5,6 @@ members = [
     "parse-hcl-datamodel",
 ]
 resolver = "2"
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace.dependencies]
@@ -14,5 +13,5 @@ clap = { version = "4.4.0", features = ["derive"] } # command-line parser
 hcl-rs = "0.16.4" # HCL parser
 anyhow = "1.0.75"
 arrow = "46.0.0"
-office = "0.8.1"
-
+arrow-csv = "46.0.0"
+calamine = "0.21.2"
