@@ -1,7 +1,7 @@
 use std::path::Path;
 use crate::errors::DataImportError;
 pub fn load_xlsx<P: AsRef<Path>>(path: P) -> Result<(),DataImportError> {
-    let result = crate::adapters::read_xlsx::import_xlsx(path)?;
+    //let result = crate::adapters::read_xlsx::import_xlsx(path)?;
     Ok(())
 }
 

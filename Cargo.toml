@@ -14,4 +14,5 @@ hcl-rs = "0.16.4" # HCL parser
 anyhow = "1.0.75"
 arrow = "46.0.0"
 arrow-csv = "46.0.0"
+polars = "0.32.1"
 calamine = "0.21.2"
