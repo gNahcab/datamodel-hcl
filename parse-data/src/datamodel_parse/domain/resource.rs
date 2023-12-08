@@ -2,7 +2,7 @@ use hcl::{Attribute, Block, BlockLabel};
 use crate::domain::label::{Label, LabelBlockWrapper};
 use crate::domain::remove_useless_quotation_marks;
 use crate::domain::res_props::{ResProp, ResPropWrapper};
-use crate::errors::DatamodelHCLError;
+use crate::errors::ParseError;
 
 
 #[derive(Debug, PartialEq)]
@@ -46,23 +46,23 @@ impl TransientStructureResource {
             ontology: None,
         }
     }
-    pub(crate) fn add_name(&mut self, name_label: Result<&BlockLabel, DatamodelHCLError>) {
+    pub(crate) fn add_name(&mut self, name_label: Result<&BlockLabel, ParseError>) {
         self.name = Option::from(name_label.unwrap().as_str().to_string());
     }
     pub(crate) fn add_res_type(&mut self, identifier: String) {
         self.res_type = Option::from(identifier);
     }
-    pub(crate) fn add_ontology(&mut self, onto_string: String) -> Result<(), DatamodelHCLError> {
+    pub(crate) fn add_ontology(&mut self, onto_string: String) -> Result<(), ParseError> {
         if !self.ontology.is_none() {
-            return Err(DatamodelHCLError::ValidationError(format!("ontology should exist once, found more than once for '{:?}'", self)));
+            return Err(ParseError::ValidationError(format!("ontology should exist once, found more than once for '{:?}'", self)));
         }
         let onto_string = remove_useless_quotation_marks(onto_string);
         self.ontology = Option::from(onto_string);
         Ok(())
     }
-    pub(crate) fn add_labels(&mut self, labels: Vec<Label>) -> Result<(), DatamodelHCLError> {
+    pub(crate) fn add_labels(&mut self, labels: Vec<Label>) -> Result<(), ParseError> {
         if !self.labels.is_empty() {
-            return Err(DatamodelHCLError::ValidationError(format!("labels should exist once, found more than once for '{:?}'", self)));
+            return Err(ParseError::ValidationError(format!("labels should exist once, found more than once for '{:?}'", self)));
         }
         self.labels = labels;
         Ok(())
@@ -70,22 +70,22 @@ impl TransientStructureResource {
     pub(crate) fn add_res_prop(&mut self, res_prop: ResProp) {
         self.res_props.push(res_prop);
     }
-    pub(crate) fn is_consistent(&self) -> Result<(), DatamodelHCLError> {
+    pub(crate) fn is_consistent(&self) -> Result<(), ParseError> {
         if self.name.is_none() {
-            return Err(DatamodelHCLError::ValidationError(format!("couldn't find name for resource '{:?}'", self)));
+            return Err(ParseError::ValidationError(format!("couldn't find name for resource '{:?}'", self)));
         }
         if self.res_type.is_none() {
             //todo! Error by where they happen, like RessourceValidationErrror
-            return Err(DatamodelHCLError::ValidationError(format!("couldn't find res_type for resource '{:?}'", self)));
+            return Err(ParseError::ValidationError(format!("couldn't find res_type for resource '{:?}'", self)));
         }
         if self.ontology.is_none() {
-            return Err(DatamodelHCLError::ValidationError(format!("couldn't find ontology for resource '{:?}'", self)));
+            return Err(ParseError::ValidationError(format!("couldn't find ontology for resource '{:?}'", self)));
         }
         if self.labels.len() == 0 {
-            return Err(DatamodelHCLError::ValidationError(format!("couldn't find labels for resource '{:?}'", self)));
+            return Err(ParseError::ValidationError(format!("couldn't find labels for resource '{:?}'", self)));
         }
         if self.res_props.len() == 0 {
-            return Err(DatamodelHCLError::ValidationError(format!("couldn't find res_props for resource '{:?}'", self)));
+            return Err(ParseError::ValidationError(format!("couldn't find res_props for resource '{:?}'", self)));
         }
         Ok(())
     }
@@ -93,11 +93,11 @@ impl TransientStructureResource {
 pub(crate) struct ResourceWrapper(pub(crate) hcl::Block);
 
 impl ResourceWrapper {
-    pub fn to_resource(self) -> Result<Resource, DatamodelHCLError> {
+    pub fn to_resource(self) -> Result<Resource, ParseError> {
         let mut transient_structure_resource = TransientStructureResource::new();
         transient_structure_resource.add_res_type(self.0.identifier.to_string());
         // Resource name
-        transient_structure_resource.add_name(self.0.labels().get(0).ok_or(DatamodelHCLError::ParseProjectModel(
+        transient_structure_resource.add_name(self.0.labels().get(0).ok_or(ParseError::ParseProjectModel(
             String::from(format!("couldn't parse name of resource: '{:?}'", self.0.labels())))));
 
         let labels: Vec<&Attribute> = self.0.body.attributes().collect();
@@ -107,7 +107,7 @@ impl ResourceWrapper {
                     transient_structure_resource.add_ontology(label.expr.to_string());
                 }
                 _ => {
-                    return Err(DatamodelHCLError::ParseProjectModel(
+                    return Err(ParseError::ParseProjectModel(
             String::from(format!("only one ontology-attribute is allowed here but found: '{:?}'", labels))));
                 }
             }
@@ -137,7 +137,7 @@ impl ResourceWrapper {
 mod test {
     use hcl::{block};
     use crate::domain::resource::{Resource, ResourceWrapper};
-    use crate::errors::DatamodelHCLError;
+    use crate::errors::ParseError;
 
     #[test]
     fn test_into_resource() {
@@ -158,7 +158,7 @@ mod test {
       }
   }
         );
-        let resource:Result<Resource, DatamodelHCLError> = ResourceWrapper{0: resource_block}.to_resource();
+        let resource:Result<Resource, ParseError> = ResourceWrapper{0: resource_block}.to_resource();
         assert!(resource.as_ref().is_ok());
         assert_eq!(resource.as_ref().unwrap().name, "Image2D");
         assert_eq!(resource.as_ref().unwrap().res_type, "StillImageRepresentation");

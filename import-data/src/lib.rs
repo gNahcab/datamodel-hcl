@@ -1,3 +1,3 @@
 pub mod operations;
-pub mod adapters;
+pub mod importers;
 pub mod errors;

@@ -2,7 +2,7 @@ use hcl::{Attribute};
 use hcl::format::{Format, Formatter};
 use crate::domain::ontology::Ontology;
 use crate::domain::remove_useless_quotation_marks;
-use crate::errors::DatamodelHCLError;
+use crate::errors::ParseError;
 
 #[derive(Debug, PartialEq)]
 pub struct Label{
@@ -26,9 +26,9 @@ impl TransientStructureLabels {
     pub(crate) fn add_label(&mut self, label: Label) {
         self.labels.push(label);
     }
-    pub(crate) fn is_complete(&self) -> Result<(), DatamodelHCLError> {
+    pub(crate) fn is_complete(&self) -> Result<(), ParseError> {
         if self.labels.is_empty() {
-            return Err(DatamodelHCLError::ValidationError(format!("block 'labels' doesn't contain any labels")));
+            return Err(ParseError::ValidationError(format!("block 'labels' doesn't contain any labels")));
         }
         Ok(())
     }
@@ -36,7 +36,7 @@ impl TransientStructureLabels {
 
 
 impl LabelWrapper {
-    fn to_label(self) -> Result<Label, DatamodelHCLError> {
+    fn to_label(self) -> Result<Label, ParseError> {
         let mut text = self.0.expr().to_string();
         text = remove_useless_quotation_marks(text);
 
@@ -45,7 +45,7 @@ impl LabelWrapper {
     }
 }
 impl LabelBlockWrapper {
-    pub fn to_labels(&self) -> Result<Vec<Label>, DatamodelHCLError> {
+    pub fn to_labels(&self) -> Result<Vec<Label>, ParseError> {
         let mut transient_structure_label = TransientStructureLabels::new();
         let label_attributes: Vec<&hcl::Attribute> = self.0.body.attributes().collect();
 
@@ -66,14 +66,14 @@ impl LabelBlockWrapper {
 mod test {
     use hcl::{attribute, block};
     use crate::domain::label::{Label, LabelWrapper, LabelBlockWrapper};
-    use crate::errors::DatamodelHCLError;
+    use crate::errors::ParseError;
 
     #[test]
     fn test_to_label() {
         let label_body = attribute!(
                 en = "my label"
         );
-        let label: Result<Label, DatamodelHCLError> = LabelWrapper{ 0: label_body }.to_label();
+        let label: Result<Label, ParseError> = LabelWrapper{ 0: label_body }.to_label();
         assert!(label.as_ref().is_ok());
         assert_eq!(label.as_ref().unwrap().text, "my label");
         assert_eq!(label.as_ref().unwrap().language_abbr, "en");

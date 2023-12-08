@@ -4,7 +4,7 @@ use crate::domain::ontology::Ontology;
 use crate::domain::project_model::ProjectModel;
 use crate::domain::property::Property;
 use crate::domain::resource::Resource;
-use crate::errors::DatamodelHCLError;
+use crate::errors::ParseError;
 
 pub mod project_model;
 
@@ -16,5 +16,5 @@ pub trait Builder {
     fn add_to_properties(&mut self, property:Property);
     fn add_to_resources(&mut self, resource:Resource);
 
-    fn build(self) -> Result<ProjectModel, DatamodelHCLError>;
+    fn build(self) -> Result<ProjectModel, ParseError>;
 }

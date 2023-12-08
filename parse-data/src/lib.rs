@@ -1,7 +1,6 @@
 pub mod errors;
 pub mod operations;
-
-pub mod domain;
+pub mod datamodel_parse;
 
 
 
