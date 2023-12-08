@@ -1,11 +1,9 @@
-use std::env::consts::FAMILY;
 use std::num::ParseIntError;
-use anyhow::Error;
-use crate::domain::ontology::Ontology;
-use crate::domain::project_model::ProjectModel;
-use crate::domain::property::Property;
-use crate::domain::res_props::ResProp;
-use crate::domain::resource::Resource;
+use crate::datamodel_parse::domain::ontology::Ontology;
+use crate::datamodel_parse::domain::project_model::ProjectModel;
+use crate::datamodel_parse::domain::property::Property;
+use crate::datamodel_parse::domain::res_props::ResProp;
+use crate::datamodel_parse::domain::resource::Resource;
 use crate::errors::ParseError;
 
 use super::Builder;
@@ -174,12 +172,12 @@ fn build(self) -> Result<ProjectModel, ParseError> {
 
 mod test {
     use std::result;
-    use crate::domain::builders::Builder;
-    use crate::domain::builders::project_model::{are_properties_correct, are_propnames_consistent_with_properties, contains_prefix_other_datamodel, do_ontology_names_of_propnames_exist, is_resource_correct, ProjectModelBuilder};
-    use crate::domain::label::Label;
-    use crate::domain::property::Property;
-    use crate::domain::res_props::ResProp;
-    use crate::domain::resource::Resource;
+    use crate::datamodel_parse::domain::builders::Builder;
+    use crate::datamodel_parse::domain::builders::project_model::{are_properties_correct, are_propnames_consistent_with_properties, contains_prefix_other_datamodel, do_ontology_names_of_propnames_exist, is_resource_correct, ProjectModelBuilder};
+    use crate::datamodel_parse::domain::label::Label;
+    use crate::datamodel_parse::domain::property::Property;
+    use crate::datamodel_parse::domain::res_props::ResProp;
+    use crate::datamodel_parse::domain::resource::Resource;
 
     #[test]
     fn test_project_model_is_correct() {

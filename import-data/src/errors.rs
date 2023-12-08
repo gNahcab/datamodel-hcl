@@ -5,7 +5,8 @@ pub enum DataImportError {
     IO(io::Error),
     XlsxError(calamine::XlsxError),
     ArrowError(arrow::error::ArrowError),
-    PolarsError(polars::error::PolarsError)
+    PolarsError(polars::error::PolarsError),
+    HCLError(hcl::Error)
 }
 
 impl From<calamine::XlsxError> for DataImportError {
@@ -26,5 +27,10 @@ impl From<arrow::error::ArrowError> for DataImportError {
 impl From<polars::error::PolarsError> for DataImportError {
     fn from(error: polars::error::PolarsError) -> Self {
         DataImportError::PolarsError(error)
+    }
+}
+impl From<hcl::Error> for DataImportError {
+    fn from(error: hcl::Error) -> Self {
+        DataImportError::HCLError(error)
     }
 }

@@ -1,6 +1,5 @@
 use hcl::{Attribute, Block, BlockLabel};
-use crate::domain::label::Label;
-use crate::domain::remove_useless_quotation_marks;
+use crate::datamodel_parse::domain::remove_useless_quotation_marks;
 use crate::errors::ParseError;
 
 #[derive(Debug, PartialEq)]
@@ -81,7 +80,7 @@ impl OntologyWrapper {
 
 mod test {
     use hcl::{block};
-    use crate::domain::ontology::{OntologyWrapper, Ontology};
+    use crate::datamodel_parse::domain::ontology::{OntologyWrapper, Ontology};
     use crate::errors::ParseError;
 
     #[test]

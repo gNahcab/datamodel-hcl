@@ -1,12 +1,11 @@
 use std::str::FromStr;
 use hcl::{Block, Body};
-use crate::domain::builders::Builder;
-use crate::domain::ontology::{OntologyWrapper, Ontology};
-
-use crate::domain::property::{PropertyWrapper, Property};
-use crate::domain::resource::{ResourceWrapper, Resource};
+use crate::datamodel_parse::domain::builders::Builder;
+use crate::datamodel_parse::domain::ontology::{OntologyWrapper, Ontology};
+use crate::datamodel_parse::domain::builders::project_model::ProjectModelBuilder;
+use crate::datamodel_parse::domain::property::{PropertyWrapper, Property};
+use crate::datamodel_parse::domain::resource::{ResourceWrapper, Resource};
 use crate::errors::ParseError;
-use crate::domain::builders::project_model::ProjectModelBuilder;
 
 
 

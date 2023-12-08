@@ -4,6 +4,7 @@ use polars::prelude::*;
 use polars::frame::DataFrame;
 use crate::errors::DataImportError;
 pub fn read_xlsx<P: AsRef<Path>>(path: P) -> Result<Vec<DataFrame>, DataImportError> {
+    // todo change method naming: get replace with correct vocabulary for methods, see: https://rust-lang.github.io/api-guidelines/naming.html
 let dataframes: Vec<polars::frame::DataFrame> = get_dataframes(path)?;
 Ok((dataframes))
 }
@@ -19,6 +20,7 @@ fn get_dataframes<P: AsRef<Path>>(path: P) -> Result<Vec<DataFrame>, DataImportE
 }
 
 fn get_dataframe(worksheet: (String, Range<calamine::DataType>)) -> Result<DataFrame, DataImportError> {
+    // todo change method-name: to_dataframe?
     let mut all_series: Vec<Series> = vec![];
     for (i, row) in worksheet.1.rows().enumerate(){
         let row_vec: Vec<String> = row.iter().map(|entry| entry.to_string()).collect();

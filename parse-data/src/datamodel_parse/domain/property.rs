@@ -1,7 +1,7 @@
 use hcl::{Attribute, Block, block, BlockLabel};
 use crate::errors::ParseError;
-use crate::domain::label::{Label, LabelBlockWrapper, LabelWrapper};
-use crate::domain::remove_useless_quotation_marks;
+use crate::datamodel_parse::domain::label::{Label, LabelBlockWrapper, LabelWrapper};
+use crate::datamodel_parse::domain::remove_useless_quotation_marks;
 
 
 #[derive(Debug, PartialEq)]
@@ -148,8 +148,8 @@ impl PropertyWrapper {
 
 mod test {
     use hcl::{block};
-    use crate::domain::label::Label;
-    use crate::domain::property::{Property, PropertyWrapper};
+    use crate::datamodel_parse::domain::label::Label;
+    use crate::datamodel_parse::domain::property::{Property, PropertyWrapper};
     use crate::errors::ParseError;
 
     #[test]

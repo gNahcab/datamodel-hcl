@@ -1,12 +1,11 @@
-use std::{todo, unimplemented};
-use crate::domain::builders::project_model::ProjectModelBuilder;
-use crate::domain::ontology::Ontology;
-use crate::domain::project_model::ProjectModel;
-use crate::domain::property::Property;
-use crate::domain::resource::Resource;
+pub(crate) mod project_model;
+
+use crate::datamodel_parse::domain::ontology::Ontology;
+use crate::datamodel_parse::domain::project_model::ProjectModel;
+use crate::datamodel_parse::domain::property::Property;
+use crate::datamodel_parse::domain::resource::Resource;
 use crate::errors::ParseError;
 
-pub mod project_model;
 
 
 pub trait Builder {

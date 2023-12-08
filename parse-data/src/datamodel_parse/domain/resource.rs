@@ -1,7 +1,7 @@
 use hcl::{Attribute, Block, BlockLabel};
-use crate::domain::label::{Label, LabelBlockWrapper};
-use crate::domain::remove_useless_quotation_marks;
-use crate::domain::res_props::{ResProp, ResPropWrapper};
+use crate::datamodel_parse::domain::label::{Label, LabelBlockWrapper};
+use crate::datamodel_parse::domain::remove_useless_quotation_marks;
+use crate::datamodel_parse::domain::res_props::{ResProp, ResPropWrapper};
 use crate::errors::ParseError;
 
 
@@ -136,7 +136,7 @@ impl ResourceWrapper {
 
 mod test {
     use hcl::{block};
-    use crate::domain::resource::{Resource, ResourceWrapper};
+    use crate::datamodel_parse::domain::resource::{Resource, ResourceWrapper};
     use crate::errors::ParseError;
 
     #[test]

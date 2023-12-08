@@ -1,4 +1,4 @@
-use crate::domain::remove_useless_quotation_marks;
+use crate::datamodel_parse::domain::remove_useless_quotation_marks;
 use crate::errors::ParseError;
 
 #[derive(Debug, PartialEq)]
@@ -115,7 +115,7 @@ impl ResPropWrapper {
 
 mod test {
     use hcl::{block};
-    use crate::domain::res_props::{ResProp, ResPropWrapper};
+    use crate::datamodel_parse::domain::res_props::{ResProp, ResPropWrapper};
     use crate::errors::ParseError;
 
     #[test]
