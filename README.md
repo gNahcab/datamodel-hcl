@@ -52,3 +52,32 @@ Resource "Text"{
 - a res-prop is a representation of a property within the resource
 
 
+# Transform HCL to modify import data
+
+
+### methods:
+- lower
+- upper
+- add
+- replace
+- to_date
+
+#### lower
+ string to lowercase
+
+#### upper
+ string to uppercase
+
+#### add
+- multiple variables and fixed string elements possible
+ -> e.g. add($a_$b) where $a, $b are variables and "_" is a fixed string element
+
+#### replace
+- replace elements of a string by another string
+- only fixed strings can be replaced
+- words get replaced, not parts of words
+- all occurrences get replaced
+- multiple replace need to have a different name (e.g. replace "a" and replace "b")
+
+#### to_date
+- tries to return a DSP-Date according to data provided
