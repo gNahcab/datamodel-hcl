@@ -1,6 +1,6 @@
 use hcl::{Attribute, body, Body};
 use crate::errors::ParseError;
-use crate::transform_parse::domain::read_transform_hcl::OrganizedBy;
+use crate::transform_parse::domain::organized_by::OrganizedBy;
 use crate::datamodel_parse::remove_useless_quotation_marks;
 
 #[derive(Debug)]
@@ -27,7 +27,7 @@ impl SheetInfoWrapper {
                     if transient_structure.resource.is_some() {
                         return Err(ParseError::ValidationError(format!("error in sheet: found duplicate for 'resource' in: '{:?}'", self)));
                     }
-                    transient_structure.resource = Option::from(attribute.expr.to_string());
+                    transient_structure.resource = Option::from(remove_useless_quotation_marks(attribute.expr.to_string()));
                 }
                 _ => {
                     return Err(ParseError::ValidationError(format!("keyword '{:?}' not allowed in 'sheet'", attribute.key)));
@@ -55,9 +55,10 @@ impl TransientStructureSheetInfo {
     }
 }
 
+#[derive(Debug)]
 pub struct SheetInfo {
-    structured_by: OrganizedBy,
-    resource: Option<String>,
+    pub(crate) structured_by: OrganizedBy,
+    pub(crate) resource: Option<String>,
 }
 
 impl SheetInfo {

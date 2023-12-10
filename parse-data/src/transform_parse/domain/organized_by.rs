@@ -1,3 +1,5 @@
+use crate::errors::ParseError;
+
 #[derive(Debug)]
 pub enum OrganizedBy {
     // two possibilities to structure a table by row or by column,

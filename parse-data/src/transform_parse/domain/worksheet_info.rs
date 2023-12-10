@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+use crate::transform_parse::domain::organized_by::OrganizedBy;
+use crate::transform_parse::domain::read_transform_hcl::RowOrResourceName;
+
 #[derive(Debug)]
 pub struct WorksheetInfo {
     organized_by: OrganizedBy,

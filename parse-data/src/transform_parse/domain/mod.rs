@@ -4,3 +4,4 @@ mod assignment;
 mod worksheet_info;
 mod builders;
 mod organized_by;
+mod methods;
