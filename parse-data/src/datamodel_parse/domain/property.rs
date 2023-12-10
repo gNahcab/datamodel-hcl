@@ -1,7 +1,7 @@
 use hcl::{Attribute, Block, block, BlockLabel};
 use crate::errors::ParseError;
 use crate::datamodel_parse::domain::label::{Label, LabelBlockWrapper, LabelWrapper};
-use crate::datamodel_parse::domain::remove_useless_quotation_marks;
+use crate::datamodel_parse::remove_useless_quotation_marks;
 
 
 #[derive(Debug, PartialEq)]

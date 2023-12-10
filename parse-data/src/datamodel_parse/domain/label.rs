@@ -1,7 +1,7 @@
 use hcl::{Attribute};
 use hcl::format::{Format, Formatter};
 use crate::datamodel_parse::domain::ontology::Ontology;
-use crate::datamodel_parse::domain::remove_useless_quotation_marks;
+use crate::datamodel_parse::remove_useless_quotation_marks;
 use crate::errors::ParseError;
 
 #[derive(Debug, PartialEq)]

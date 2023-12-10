@@ -9,7 +9,3 @@ mod builders;
 mod label;
 
 
-
-fn remove_useless_quotation_marks(string: String) -> String {
-    return string.replace('"', "");
-}

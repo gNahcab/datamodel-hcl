@@ -1,49 +1,17 @@
 use std::any::Any;
 use std::collections::HashMap;
-use std::path::Path;
 use hcl::{Attribute, Block, BlockLabel, Body, Expression, Identifier, to_vec};
 use hcl::format::Format;
-use hcl::Value::Number;
-use crate::datamodel_parse::domain::resource::Resource;
 use crate::errors::ParseError;
-use crate::transform_parse::domain::builders::transform_hcl::TransformHCLBuilder;
+use crate::transform_parse::domain::organized_by::OrganizedBy;
+use crate::transform_parse::domain::sheet_info::{SheetInfo, SheetInfoWrapper};
+use crate::transform_parse::domain::worksheet_info::WorksheetInfo;
 
-#[derive(Debug)]
-pub enum OrganizedBy {
-    // two possibilities to structure a table by row or by column,
-    // transforming can depend on structure of table
-    // for example:
-    //
-    // by row:
-    // ________________________________
-    // | rowA1 | rowA2 | rowA3 ] rowA4 |
-    // | rowB1 | rowB2 | rowB3 ] rowB4 |
-    // |_______________________________|
-    //
-    // by col:
-    // _________________
-    // | rowA1 | rowA1 |
-    // | rowA2 | rowB2 |
-    // | rowA3 | rowB3 |
-    // | rowA4 | rowB4 |
-    // |_______________|
-    //
-    ROWOrganized,
-    COLOrganized,
-}
+
 #[derive(Debug)]
 pub enum RowOrResourceName {
     RowNr,
     ResourceName,
-}
-
-#[derive(Debug)]
-pub struct WorksheetInfo {
-    organized_by: OrganizedBy,
-    col_row_to_property:  HashMap<usize, String>,
-    row_or_resource_name: RowOrResourceName,
-    condition_to_code: HashMap<String, String>,
-
 }
 #[derive(Debug)]
 pub struct TransformHCL {
@@ -66,6 +34,11 @@ struct TransientStructureWorksheetInfo {
     name_to_assignment: HashMap<String, String>,
 }
 
+
+struct TransientStructureAssignments {
+    label: Option<usize>,
+    name_to_assignment: HashMap<String, String>
+}
 struct TransientStructureTransformHCL {
     all_sheets: Option<bool>,
     sheets: Vec<usize>,
@@ -125,7 +98,7 @@ impl TransientStructureTransformHCL {
             return Err(ParseError::ValidationError(format!("sheet should only have one label, cannot parse 'sheet' : '{:?}'", labels)));
         }
         let label = labels.get(0).unwrap().as_str();
-        let sheet_info = as_sheet_info()?;
+        let sheet_info: SheetInfo = SheetInfoWrapper(body.to_owned()).to_sheet_info()?;
         self._add_sheet_info_to_worksheet_info(label, sheet_info)?;
         Ok(())
     }
@@ -137,17 +110,17 @@ impl TransientStructureTransformHCL {
             return Err(ParseError::ValidationError(format!("assignments should only have one label, cannot parse 'assignments' : '{:?}'", labels)));
         }
         let label = labels.get(0).unwrap().as_str();
-        let assignments = as_assignments()?;
-        self._add_assignment_to_worksheet_info(label, assignments)?;
+        //let assignments &Assignments = as_assignments()?;
+        //self._add_assignment_to_worksheet_info(label, assignments)?;
         Ok(())
     }
     pub(crate) fn add_methods(&self, labels: &Vec<BlockLabel>, body: &Body) {
         todo!()
     }
-    fn _add_sheet_info_to_worksheet_info(&self, label: &str, body: &Body) -> Result<(), ParseError> {
+    fn _add_sheet_info_to_worksheet_info(&self, label: &str, sheet_info: SheetInfo) -> Result<(), ParseError> {
         todo!()
     }
-    fn _add_assignment_to_worksheet_info(&self, label: &str, body: &Body) -> Result<(), ParseError> {
+    fn _add_assignment_to_worksheet_info(&self, label: &str, assignments: &TransientStructureAssignments) -> Result<(), ParseError> {
         todo!()
     }
 }
@@ -202,7 +175,7 @@ mod test {
     fn test_read_simple_transform_hcl() {
         let body = hcl::body!(
             sheets = [1,2]
-            sheet  {
+            sheet "1" {
                 structured_by = "row"
                 resource = "Person"
             }

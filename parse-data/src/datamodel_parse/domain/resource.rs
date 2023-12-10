@@ -1,6 +1,6 @@
 use hcl::{Attribute, Block, BlockLabel};
 use crate::datamodel_parse::domain::label::{Label, LabelBlockWrapper};
-use crate::datamodel_parse::domain::remove_useless_quotation_marks;
+use crate::datamodel_parse::remove_useless_quotation_marks;
 use crate::datamodel_parse::domain::res_props::{ResProp, ResPropWrapper};
 use crate::errors::ParseError;
 
