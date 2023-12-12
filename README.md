@@ -68,9 +68,9 @@ Resource "Text"{
 #### upper
  string to uppercase
 
-#### add
+#### new
 - multiple variables and fixed string elements possible
- -> e.g. add($a_$b) where $a, $b are variables and "_" is a fixed string element
+ -> e.g. new($a_$b) where $a, $b are variables and "_" is a fixed string element
 
 #### replace
 - replace elements of a string by another string

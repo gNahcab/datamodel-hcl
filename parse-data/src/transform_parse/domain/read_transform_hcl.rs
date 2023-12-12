@@ -1,13 +1,12 @@
 use std::any::Any;
 use std::collections::HashMap;
-use std::fmt::format;
 use std::num::ParseIntError;
-use anyhow::format_err;
-use hcl::{Attribute, Block, BlockLabel, Body, Expression, Identifier, to_vec};
+use hcl::{Block, BlockLabel, Body, Expression};
 use hcl::format::Format;
 use crate::errors::ParseError;
 use crate::transform_parse::domain::assignment::{Assignments, AssignmentsWrapper};
-use crate::transform_parse::domain::methods::{Methods, WrapperMethods};
+use crate::transform_parse::domain::builders::transform_hcl;
+use crate::transform_parse::domain::method::{Method, WrapperMethod};
 use crate::transform_parse::domain::organized_by::OrganizedBy;
 use crate::transform_parse::domain::sheet_info::{SheetInfo, SheetInfoWrapper};
 use crate::transform_parse::domain::worksheet_info::WorksheetInfo;
@@ -57,14 +56,18 @@ struct TransientStructureAssignments {
     name_to_assignment: HashMap<String, String>
 }
 struct TransientStructureTransformHCL {
+    transform: Option<String>,
     all_sheets: Option<bool>,
     sheets: Vec<usize>,
     worksheets: HashMap<usize, TransientStructureWorksheetInfo>,
     methods: Vec<String>,
 }
+
+
 impl TransientStructureTransformHCL {
     fn new() -> TransientStructureTransformHCL {
         return TransientStructureTransformHCL{
+            transform: None,
             all_sheets: None,
             sheets: vec![],
             worksheets: Default::default(),
@@ -107,6 +110,28 @@ impl TransientStructureTransformHCL {
         }
         Ok(())
     }
+
+    pub(crate) fn add_transform(&mut self, transform_expression: &Expression) -> Result<(), ParseError> {
+        if self.all_sheets.is_some() {
+            return Err(ParseError::ValidationError(format!("only one declaration of 'transform' allowed, second 'transform' found with expression '{}'", transform_expression)));
+        }
+        match transform_expression {
+            Expression::String(value) => {
+                match value.as_str() {
+                    "xlsx" => {
+                        self.transform = Option::from(value.to_string());
+                    }
+                    _ => {
+                        return Err(ParseError::ValidationError(format!("expression of 'transform' is not allowed: '{}'", transform_expression)));
+                    }
+                }
+            }
+            _ => {
+                return Err(ParseError::ValidationError(format!("the type of expression of '' is not valid: '{:?}', only String allowed", transform_expression)));
+            }
+        }
+        Ok(())
+    }
     pub(crate) fn add_sheet_info(&mut self, label: &str, body: &Body) -> Result<(), ParseError> {
         let sheet_info: SheetInfo = SheetInfoWrapper(body.to_owned()).to_sheet_info()?;
         self._add_sheet_info_to_worksheet_info(label, sheet_info)?;
@@ -117,22 +142,23 @@ impl TransientStructureTransformHCL {
         self._add_assignment_to_worksheet_info(label, assignments)?;
         Ok(())
     }
-    pub(crate) fn add_methods(&self, body: &Body) -> Result<(), ParseError>{
-        let methods: Methods = WrapperMethods(body.to_owned()).to_methods()?;
+    pub(crate) fn add_method(&self, block: &Block) -> Result<(), ParseError>{
+        let method: Method = WrapperMethod(block.to_owned()).to_method()?;
+        self._add_methods_to_worksheet_info(method)?;
         Ok(())
     }
     fn _add_sheet_info_to_worksheet_info(&mut self, label: &str, sheet_info: SheetInfo) -> Result<(), ParseError> {
         let result:Result<usize, ParseIntError> = label.parse();
         let label = match result {
             Ok(value) => {value}
-            Err(value) => {
+            Err(_) => {
                 return Err(ParseError::ValidationError(format!("cannot parse label '{}' of 'sheet'", label)));
             }
         };
         match self.worksheets.get_mut(&label) {
             None => {
                 self.worksheets.insert(label, TransientStructureWorksheetInfo{
-                    label: label,
+                    label,
                     structured_by: Option::from(sheet_info.structured_by),
                     resource: sheet_info.resource,
                     resource_row: None,
@@ -176,6 +202,15 @@ impl TransientStructureTransformHCL {
             }
             Ok(())
     }
+    fn _add_methods_to_worksheet_info(&self, method: Method) -> Result<(), ParseError> {
+        todo!()
+    }
+    pub(crate) fn is_complete(&self) -> Result<(), ParseError> {
+        todo!()
+    }
+    pub(crate) fn as_worksheets(&self) -> Vec<WorksheetInfo> {
+        todo!()
+    }
 }
 
 
@@ -190,6 +225,9 @@ impl TryFrom<hcl::Body> for TransformHCL {
             match attribute.key.as_str() {
                 "sheets" => {
                 transient_transform_hcl.add_sheets(attribute.expr())?;
+                }
+                "transform" => {
+                    transient_transform_hcl.add_transform(attribute.expr())?;
                 }
                 _ => {
                     return Err(ParseError::ValidationError(format!("attribute '{}' with value '{}' not allowed", attribute.expr, attribute.key)));
@@ -219,16 +257,17 @@ impl TryFrom<hcl::Body> for TransformHCL {
                     let label = block.labels.get(0).unwrap().as_str();
                     transient_transform_hcl.add_assignment(label, &block.body)?;
                 }
-                "methods" => {
-                    transient_transform_hcl.add_methods(&block.body)?;
+                "method" => {
+                    transient_transform_hcl.add_method(block)?;
                 }
                 _ => {
                     return Err(ParseError::ValidationError(format!("the identifier of this block is not allowed '{}'", block.identifier)));
                 }
             }
         }
-        Ok(TransformHCL{ worksheets: vec![] })
-        }
+        transient_transform_hcl.is_complete()?;
+        Ok(TransformHCL::new(transient_transform_hcl.as_worksheets()))
+    }
     }
 
 #[cfg(test)]
@@ -240,6 +279,7 @@ mod test {
     #[test]
     fn test_read_simple_transform_hcl() {
         let body = hcl::body!(
+            transform = "xlsx"
             sheets = [1,2]
             sheet "1" {
                 structured_by = "row"
@@ -247,22 +287,20 @@ mod test {
             }
             assignments "1"  {
                 id = 0
-                label = "methods.add.a(£0,£1)"
+                label = "new.a(£0,£1)"
                 hasName = 2
-                hasIdentifier = "methods.replace.a($3)"
+                hasIdentifier = "replace.a($3)"
                 hasChildren = 4
                 hasExternalLink = 5
             }
 
-            methods {
+            method "new" "a"{
                 // lower the b-variable
-                add "a" {
-                    a = "£a_£lower(£b)"
+                    function = "${a}_$lower({$b})"
                 }
                 // replace DICT with DICTIONARY, once per line and don't look for words but parts of words(no whitespaces between)
-                replace "a" {
-                    repl = ["DICT", "DICTIONARY"]
-                    }
+            method "replace" "a" {
+                    function = ["DICT", "DICTIONARY"]
                 }
 
         );
