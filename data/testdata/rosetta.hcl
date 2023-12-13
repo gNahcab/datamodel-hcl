@@ -9,7 +9,7 @@ property "hasTime" {
          de = ""
          fr = ""
        }
-      gui_element = "facultativ?"
+      gui_element = "TimeStamp"
     }
 property "hasTextMedium" {
       ontology = "rosetta"
@@ -19,7 +19,7 @@ property "hasTextMedium" {
         de = ""
         fr = ""
       }
-      gui_element = "facultativ?"
+      gui_element = "Searchbox"
 }
 property "hasImage" {
   ontology = "rosetta"
@@ -29,7 +29,7 @@ property "hasImage" {
     de = ""
     fr = ""
   }
-  gui_element = "facultativ?"
+  gui_element = "Searchbox"
 }
 
 property "hasOriginalText" {
@@ -40,7 +40,7 @@ property "hasOriginalText" {
     de = ""
     fr = ""
   }
-  gui_element = "facultativ?"
+  gui_element = "Textarea"
 }
 
 property "hasTranscription" {
@@ -51,7 +51,7 @@ property "hasTranscription" {
     de = ""
     fr = ""
   }
-  gui_element = "facultativ?"
+  gui_element = "Richtext"
 }
 
 property "hasTransliteration" {
@@ -62,7 +62,7 @@ property "hasTransliteration" {
     de = ""
     fr = ""
   }
-  gui_element = "facultativ?"
+  gui_element = "Textarea"
 }
 
 property "hasTranslation" {
@@ -73,7 +73,7 @@ property "hasTranslation" {
     de = ""
     fr = ""
   }
-  gui_element = "facultativ?"
+  gui_element = "Textarea"
 }
 
 property "hasDescription" {
@@ -84,7 +84,7 @@ property "hasDescription" {
     de = ""
     fr = ""
   }
-  gui_element = "facultativ?"
+  gui_element = "Richtext"
 }
 
 property "hasAuthor" {
@@ -95,7 +95,7 @@ property "hasAuthor" {
     de = ""
     fr = ""
   }
-  gui_element = "facultativ?"
+  gui_element = "Searchbox"
 }
 
 property "hasName" {
@@ -106,7 +106,7 @@ property "hasName" {
     de = ""
     fr = ""
   }
-  gui_element = "facultativ?"
+  gui_element = "Simpletext"
 }
 
 property "hasTitle" {
@@ -117,7 +117,7 @@ property "hasTitle" {
     de = ""
     fr = ""
   }
-  gui_element = "facultativ?"
+  gui_element = "Simpletext"
 }
 
 property "hasDate" {
@@ -128,7 +128,6 @@ property "hasDate" {
     de = ""
     fr = ""
   }
-  gui_element = "facultativ?"
 }
 
 property "hasFindspot" {
@@ -139,7 +138,6 @@ property "hasFindspot" {
     de = ""
     fr = ""
   }
-  gui_element = "facultativ?"
 }
 
 property "hasLocation" {
@@ -150,7 +148,6 @@ property "hasLocation" {
     de = ""
     fr = ""
   }
-  gui_element = "facultativ?"
 }
 
 property "hasBibliographicReference" {
@@ -161,7 +158,7 @@ property "hasBibliographicReference" {
     de = ""
     fr = ""
   }
-  gui_element = "facultativ?"
+  gui_element = "Simpletext"
 }
 
 property "hasExternalLink" {
@@ -172,7 +169,6 @@ property "hasExternalLink" {
     de = ""
     fr = ""
   }
-  gui_element = "facultativ?"
 }
 
 property "hasIdentifier" {
@@ -183,7 +179,6 @@ property "hasIdentifier" {
     de = ""
     fr = ""
   }
-  gui_element = "facultativ?"
 }
 
 property "hasRelatedArtwork" {
@@ -194,7 +189,6 @@ property "hasRelatedArtwork" {
     de = ""
     fr = ""
   }
-  gui_element = "facultativ?"
 }
 
 
@@ -206,7 +200,6 @@ property "hasCreator" {
     de = ""
     fr = ""
   }
-  gui_element = "facultativ?"
 }
 
 
@@ -218,7 +211,6 @@ property "inInstitution" {
     de = ""
     fr = ""
   }
-  gui_element = "facultativ?"
 }
 
 property "hasInventoryNumber" {
@@ -229,7 +221,7 @@ property "hasInventoryNumber" {
     de = ""
     fr = ""
   }
-  gui_element = "facultativ?"
+  gui_element = "Simpletext"
 }
 
 
@@ -237,22 +229,20 @@ property "hasPagenum" {
   ontology = "rosetta"
   object = "IntValue"
   labels {
-    en = ""
-    de = ""
-    fr = ""
+    en = "Page number"
+    de = "Seitenzahl"
+    fr = "Numéro de page"
   }
-  gui_element = "1-0"
 }
 
 property "partOf" {
   ontology = "rosetta"
   object = "IntValue"
   labels {
-    en = ""
-    de = ""
-    fr = ""
+    en = "is part of"
+    de = "ist Teil von"
+    fr = "fait partie de"
   }
-  gui_element = "facultativ?"
 }
 
   Resource "Text"{
