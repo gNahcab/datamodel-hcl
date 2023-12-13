@@ -2,7 +2,7 @@ use hcl::BlockLabel;
 use crate::errors::ParseError;
 
 #[derive(Debug)]
-pub enum Functions {
+pub enum Function {
     New,
     Replace,
     Upper,
@@ -11,14 +11,14 @@ pub enum Functions {
 }
 
 
-fn get_function(maybe_function:&str) -> Option<Functions> {
+fn get_function(maybe_function:&str) -> Option<Function> {
     //returns the function or None if non-existent
     match maybe_function {
-        "new" => {Option::from(Functions::New) }
-       "replace" => {Option::from(Functions::Replace)}
-        "upper" => {Option::from(Functions::Upper)}
-        "lower" => {Option::from(Functions::Lower)}
-        "to_date" => {Option::from(Option::from(Functions::ToDate))}
+        "new" => {Option::from(Function::New) }
+       "replace" => {Option::from(Function::Replace)}
+        "upper" => {Option::from(Function::Upper)}
+        "lower" => {Option::from(Function::Lower)}
+        "to_date" => {Option::from(Option::from(Function::ToDate))}
         _ => {
             None
         }
@@ -29,13 +29,13 @@ fn get_function(maybe_function:&str) -> Option<Functions> {
 
 #[derive(Debug)]
 pub struct MethodInfo {
-    pub(crate) function: Functions,
+    pub(crate) function: Function,
     pub(crate) name: String
 }
 
 #[derive(Debug)]
 struct TransientStructureMethodInfo {
-    function: Option<Functions>,
+    function: Option<Function>,
     name: Option<String>,
 }
 
@@ -51,7 +51,7 @@ impl TransientStructureMethodInfo {
         self.name = Some(name);
         Ok(())
     }
-     fn add_function(&mut self, function: Functions) -> Result<(), ParseError> {
+     fn add_function(&mut self, function: Function) -> Result<(), ParseError> {
          if self.function.is_some() {
              return Err(ParseError::ValidationError(format!("found two functions for '{:?}'", self)));
          }
@@ -83,7 +83,7 @@ impl WrapperMethodInfo {
             return Err(ParseError::ValidationError(format!("only two labels for method allowed, but found more than two: '{:?}'", self)));
         }
         for label in &self.0 {
-            let function: Option<Functions> = get_function(label.as_str());
+            let function: Option<Function> = get_function(label.as_str());
             match function {
                 None => {
                     transient_structure.add_name(label.as_str().to_string())?;

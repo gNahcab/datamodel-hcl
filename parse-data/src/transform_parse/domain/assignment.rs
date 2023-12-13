@@ -5,6 +5,10 @@ use crate::errors::ParseError;
 #[derive(Debug)]
 pub struct AssignmentsWrapper (pub(crate)hcl::Body);
 
+struct TransientStructureAssignments {
+    label: Option<usize>,
+    name_to_assignment: HashMap<String, String>
+}
 impl AssignmentsWrapper {
     pub fn to_assignments(&self) -> Result<Assignments, ParseError> {
         let mut assignments = Assignments::new();

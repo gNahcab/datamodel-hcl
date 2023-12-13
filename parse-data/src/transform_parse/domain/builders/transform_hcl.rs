@@ -3,8 +3,8 @@ use hcl::Expression;
 use crate::errors::ParseError;
 use crate::transform_parse::domain::builders::{TransformBuilderTrait, WorksheetBuilderTrait};
 use crate::transform_parse::domain::organized_by::OrganizedBy;
-use crate::transform_parse::domain::read_transform_hcl::{RowOrResourceName, TransformHCL};
-use crate::transform_parse::domain::worksheet_info::WorksheetInfo;
+use crate::transform_parse::domain::transform_hcl::TransformHCL;
+use crate::transform_parse::domain::worksheet_info::{RowOrResourceName, WorksheetInfo};
 
 pub struct TransformHCLBuilder {
     all_sheets: bool,

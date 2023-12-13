@@ -1,8 +1,8 @@
 use crate::datamodel_parse::domain::project_model::ProjectModel;
+use crate::transform_parse::domain::transform_hcl::TransformHCL;
 use crate::errors::ParseError;
 use std::path::Path;
 use import_data::operations::load_hcl;
-use crate::transform_parse::domain::read_transform_hcl::TransformHCL;
 
 pub fn read_datamodel<P: AsRef<Path>>(path: P) -> Result<ProjectModel, ParseError> {
     // if the hcl-file was correctly formed it returns a ProjectModel, otherwise a DatamodelHCLError

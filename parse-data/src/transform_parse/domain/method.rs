@@ -4,7 +4,7 @@ use crate::datamodel_parse::remove_useless_quotation_marks;
 use crate::errors::ParseError;
 use crate::transform_parse::domain::condition::{Condition, WrapperCondition};
 use crate::transform_parse::domain::function_body::{FunctionBody, WrapperFunctionBody};
-use crate::transform_parse::domain::method_info::{Functions, MethodInfo, WrapperMethodInfo};
+use crate::transform_parse::domain::method_info::{Function, MethodInfo, WrapperMethodInfo};
 
 #[derive(Debug)]
 pub struct WrapperMethod(pub(crate) hcl::Block);
@@ -43,7 +43,8 @@ impl WrapperMethod {
             match attribute.key.as_str() {
                 "function" => {
                     let function_body = WrapperFunctionBody(attribute.expr.to_owned()).to_function_body()?;
-                    //methods.add_method(labels, &attribute.body, &attribute.identifier)?;
+                    //todo use builder-pattern (ParsedFunctionBuilder)
+                    //let parsed_body = FunctionBody.to_parsed_body();
                 }
                 "condition" => {
                     println!("cond: {:?}", attribute);
@@ -55,8 +56,8 @@ impl WrapperMethod {
                 } }
         }
         Ok(Method{
-            method_info:MethodInfo{ function: Functions::New, name: "".to_string() },
-            function_descr: FunctionBody {},
+            method_info:MethodInfo{ function: Function::New, name: "".to_string() },
+            function_descr: FunctionBody { array: None, string: None },
             condition: None,
         })
     }

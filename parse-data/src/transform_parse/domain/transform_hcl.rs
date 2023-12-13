@@ -1,60 +1,12 @@
-use std::any::Any;
 use std::collections::HashMap;
 use std::num::ParseIntError;
-use hcl::{Block, BlockLabel, Body, Expression};
-use hcl::format::Format;
+use hcl::{Block, Body, Expression};
 use crate::errors::ParseError;
 use crate::transform_parse::domain::assignment::{Assignments, AssignmentsWrapper};
-use crate::transform_parse::domain::builders::transform_hcl;
 use crate::transform_parse::domain::method::{Method, WrapperMethod};
-use crate::transform_parse::domain::organized_by::OrganizedBy;
 use crate::transform_parse::domain::sheet_info::{SheetInfo, SheetInfoWrapper};
-use crate::transform_parse::domain::worksheet_info::WorksheetInfo;
+use crate::transform_parse::domain::worksheet_info::{TransientStructureWorksheetInfo, WorksheetInfo};
 
-
-#[derive(Debug)]
-pub enum RowOrResourceName {
-    RowNr,
-    ResourceName,
-}
-#[derive(Debug)]
-pub struct TransformHCL {
-    worksheets: Vec<WorksheetInfo>,
-}
-
-impl TransformHCL {
-    pub(crate) fn new(worksheets: Vec<WorksheetInfo>) -> Self {
-        TransformHCL{
-            worksheets
-        }
-    }
-}
-
-struct TransientStructureWorksheetInfo {
-    label : usize,
-    structured_by : Option<OrganizedBy>,
-    resource: Option<String>,
-    resource_row: Option<usize>,
-    name_to_assignment: HashMap<String, String>,
-}
-
-impl TransientStructureWorksheetInfo {
-    pub(crate) fn add_structured_by(&mut self, structured_by: Option<OrganizedBy>) {
-        self.structured_by = structured_by;
-    }
-    pub(crate) fn add_resource(&mut self, resource: Option<String>) {
-        self.resource = resource;
-    }
-    pub(crate) fn add_to_assignments(&mut self, name_to_assignments: HashMap<String, String>) {
-        self.name_to_assignment.extend(name_to_assignments);
-    }
-}
-
-
-struct TransientStructureAssignments {
-    label: Option<usize>,
-    name_to_assignment: HashMap<String, String>
-}
 struct TransientStructureTransformHCL {
     transform: Option<String>,
     all_sheets: Option<bool>,
@@ -186,21 +138,21 @@ impl TransientStructureTransformHCL {
                 return Err(ParseError::ValidationError(format!("cannot parse label '{}' of 'sheet'", label)));
             }
         };
-            match self.worksheets.get_mut(&label) {
-                None => {
-                    self.worksheets.insert(label, TransientStructureWorksheetInfo{
-                        label: label,
-                        structured_by: None,
-                        resource: None,
-                        resource_row: None,
-                        name_to_assignment: assignments.name_to_assignments,
-                    });
-                }
-                Some(transient_structure) => {
-                    transient_structure.add_to_assignments(assignments.name_to_assignments);
-                }
+        match self.worksheets.get_mut(&label) {
+            None => {
+                self.worksheets.insert(label, TransientStructureWorksheetInfo{
+                    label: label,
+                    structured_by: None,
+                    resource: None,
+                    resource_row: None,
+                    name_to_assignment: assignments.name_to_assignments,
+                });
             }
-            Ok(())
+            Some(transient_structure) => {
+                transient_structure.add_to_assignments(assignments.name_to_assignments);
+            }
+        }
+        Ok(())
     }
     fn _add_methods_to_worksheet_info(&self, method: Method) -> Result<(), ParseError> {
         todo!()
@@ -214,6 +166,10 @@ impl TransientStructureTransformHCL {
 }
 
 
+#[derive(Debug)]
+pub struct TransformHCL {
+    worksheets: Vec<WorksheetInfo>,
+}
 
 impl TryFrom<hcl::Body> for TransformHCL {
     type Error = ParseError;
@@ -224,7 +180,7 @@ impl TryFrom<hcl::Body> for TransformHCL {
         for attribute in attributes {
             match attribute.key.as_str() {
                 "sheets" => {
-                transient_transform_hcl.add_sheets(attribute.expr())?;
+                    transient_transform_hcl.add_sheets(attribute.expr())?;
                 }
                 "transform" => {
                     transient_transform_hcl.add_transform(attribute.expr())?;
@@ -236,6 +192,7 @@ impl TryFrom<hcl::Body> for TransformHCL {
         }
         let blocks: Vec<&Block> = body.blocks().collect();
         for block in blocks {
+            println!("{:?}", block);
             match block.identifier.as_str() {
                 "sheet" => {
                     if block.labels.len() == 0 {
@@ -268,13 +225,18 @@ impl TryFrom<hcl::Body> for TransformHCL {
         transient_transform_hcl.is_complete()?;
         Ok(TransformHCL::new(transient_transform_hcl.as_worksheets()))
     }
+}
+impl TransformHCL {
+    pub(crate) fn new(worksheets: Vec<WorksheetInfo>) -> Self {
+        TransformHCL{
+            worksheets
+        }
     }
-
+}
 #[cfg(test)]
 mod test {
-    use import_data::errors::DataImportError::PolarsError;
     use crate::errors::ParseError;
-    use crate::transform_parse::domain::read_transform_hcl::TransformHCL;
+    use crate::transform_parse::domain::transform_hcl::TransformHCL;
 
     #[test]
     fn test_read_simple_transform_hcl() {
@@ -284,24 +246,35 @@ mod test {
             sheet "1" {
                 structured_by = "row"
                 resource = "Person"
-            }
-            assignments "1"  {
-                id = 0
-                label = "new.a(£0,£1)"
+            assignments   {
+                id = "ID" // String = Header, wenn vorhanden
+                not_lower = 1
                 hasName = 2
-                hasIdentifier = "replace.a($3)"
+                hasIdentifier = 3
                 hasChildren = 4
                 hasExternalLink = 5
+                }
+
+                transformations {
+                    lower "lower" {
+                        variables = "not_lower"
+                    }
+                     combine "label"{ // todo new to combine
+                            variables = [0, "lower"]//"{$0}{$lower}"
+                            separator = "_"
+                            prefix = "BIZ_"
+                            suffix = "_ZIP"
+                    }
+                 replace "hasIdentifier" {
+                        variables = [0]
+                        replace = ["DICT", "DICTIONARY"]
+                        behavior = "lazy"
+                    }
+
+                }
             }
 
-            method "new" "a"{
-                // lower the b-variable
-                    function = "${a}_$lower({$b})"
-                }
                 // replace DICT with DICTIONARY, once per line and don't look for words but parts of words(no whitespaces between)
-            method "replace" "a" {
-                    function = ["DICT", "DICTIONARY"]
-                }
 
         );
         let result: Result<TransformHCL, ParseError> = body.try_into();

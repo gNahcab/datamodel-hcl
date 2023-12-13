@@ -1,4 +1,3 @@
-pub mod read_transform_hcl;
 mod sheet_info;
 mod assignment;
 mod worksheet_info;
@@ -8,3 +7,4 @@ mod method;
 mod method_info;
 mod function_body;
 mod condition;
+pub(crate) mod transform_hcl;
