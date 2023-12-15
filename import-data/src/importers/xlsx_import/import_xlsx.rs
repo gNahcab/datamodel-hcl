@@ -4,7 +4,7 @@ use polars::prelude::*;
 use polars::frame::DataFrame;
 use crate::errors::DataImportError;
 pub fn read_xlsx<P: AsRef<Path>>(path: P) -> Result<Vec<DataFrame>, DataImportError> {
-    // todo change method naming: get replace with correct vocabulary for methods, see: https://rust-lang.github.io/api-guidelines/naming.html
+    // todo change method naming: get replace with correct vocabulary for methods_domain, see: https://rust-lang.github.io/api-guidelines/naming.html
 let dataframes: Vec<polars::frame::DataFrame> = get_dataframes(path)?;
 Ok((dataframes))
 }

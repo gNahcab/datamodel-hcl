@@ -2,8 +2,6 @@ use std::collections::HashMap;
 use std::num::ParseIntError;
 use hcl::{Block, Body, Expression};
 use crate::errors::ParseError;
-use crate::transform_parse::domain::assignment::{Assignments, AssignmentsWrapper};
-use crate::transform_parse::domain::method::{Method, WrapperMethod};
 use crate::transform_parse::domain::sheet_info::{SheetInfo, SheetInfoWrapper};
 use crate::transform_parse::domain::worksheet_info::{TransientStructureWorksheetInfo, WorksheetInfo};
 
@@ -12,7 +10,6 @@ struct TransientStructureTransformHCL {
     all_sheets: Option<bool>,
     sheets: Vec<usize>,
     worksheets: HashMap<usize, TransientStructureWorksheetInfo>,
-    methods: Vec<String>,
 }
 
 
@@ -23,7 +20,6 @@ impl TransientStructureTransformHCL {
             all_sheets: None,
             sheets: vec![],
             worksheets: Default::default(),
-            methods: vec![],
         }
     }
     pub(crate) fn add_sheets(&mut self, sheet_expression: &Expression) -> Result<(), ParseError> {
@@ -89,16 +85,6 @@ impl TransientStructureTransformHCL {
         self._add_sheet_info_to_worksheet_info(label, sheet_info)?;
         Ok(())
     }
-    pub(crate) fn add_assignment(&mut self, label: &str, body: &Body) -> Result<(), ParseError> {
-        let assignments: Assignments = AssignmentsWrapper(body.to_owned()).to_assignments()?;
-        self._add_assignment_to_worksheet_info(label, assignments)?;
-        Ok(())
-    }
-    pub(crate) fn add_method(&self, block: &Block) -> Result<(), ParseError>{
-        let method: Method = WrapperMethod(block.to_owned()).to_method()?;
-        self._add_methods_to_worksheet_info(method)?;
-        Ok(())
-    }
     fn _add_sheet_info_to_worksheet_info(&mut self, label: &str, sheet_info: SheetInfo) -> Result<(), ParseError> {
         let result:Result<usize, ParseIntError> = label.parse();
         let label = match result {
@@ -130,37 +116,13 @@ impl TransientStructureTransformHCL {
         }
         Ok(())
     }
-    fn _add_assignment_to_worksheet_info(&mut self, label: &str, assignments: Assignments) -> Result<(), ParseError> {
-        let result:Result<usize, ParseIntError> = label.parse();
-        let label = match result {
-            Ok(value) => { value }
-            Err(value) => {
-                return Err(ParseError::ValidationError(format!("cannot parse label '{}' of 'sheet'", label)));
-            }
-        };
-        match self.worksheets.get_mut(&label) {
-            None => {
-                self.worksheets.insert(label, TransientStructureWorksheetInfo{
-                    label: label,
-                    structured_by: None,
-                    resource: None,
-                    resource_row: None,
-                    name_to_assignment: assignments.name_to_assignments,
-                });
-            }
-            Some(transient_structure) => {
-                transient_structure.add_to_assignments(assignments.name_to_assignments);
-            }
-        }
-        Ok(())
-    }
-    fn _add_methods_to_worksheet_info(&self, method: Method) -> Result<(), ParseError> {
-        todo!()
-    }
-    pub(crate) fn is_complete(&self) -> Result<(), ParseError> {
+    pub(crate) fn is_consistent(&self) -> Result<(), ParseError> {
+        //check if worksheet-info match with "sheets"-number
+        //check if transform = "xlsx" matches with statements in worksheet-info (maybe later, if we have filemaker etc.)
         todo!()
     }
     pub(crate) fn as_worksheets(&self) -> Vec<WorksheetInfo> {
+        //should this be  as worksheets or as something else?
         todo!()
     }
 }
@@ -192,7 +154,6 @@ impl TryFrom<hcl::Body> for TransformHCL {
         }
         let blocks: Vec<&Block> = body.blocks().collect();
         for block in blocks {
-            println!("{:?}", block);
             match block.identifier.as_str() {
                 "sheet" => {
                     if block.labels.len() == 0 {
@@ -204,25 +165,12 @@ impl TryFrom<hcl::Body> for TransformHCL {
                     let label = block.labels.get(0).unwrap().as_str();
                     transient_transform_hcl.add_sheet_info(label, &block.body)?;
                 }
-                "assignments" => {
-                    if block.labels.len() == 0 {
-                        return Err(ParseError::ValidationError(format!("assignments number- label is missing for 'assigments' : '{:?}'", body)));
-                    }
-                    if block.labels.len() > 1 {
-                        return Err(ParseError::ValidationError(format!("assignments should only have one label, cannot parse 'assignments' : '{:?}'", body)));
-                    }
-                    let label = block.labels.get(0).unwrap().as_str();
-                    transient_transform_hcl.add_assignment(label, &block.body)?;
-                }
-                "method" => {
-                    transient_transform_hcl.add_method(block)?;
-                }
                 _ => {
                     return Err(ParseError::ValidationError(format!("the identifier of this block is not allowed '{}'", block.identifier)));
                 }
             }
         }
-        transient_transform_hcl.is_complete()?;
+        transient_transform_hcl.is_consistent()?;
         Ok(TransformHCL::new(transient_transform_hcl.as_worksheets()))
     }
 }
@@ -245,7 +193,7 @@ mod test {
             sheets = [1,2]
             sheet "1" {
                 structured_by = "row"
-                resource = "Person"
+                resource = "Person" //TODO wie wenn Ressource nur in einer Spalte oder Zeile festgeschrieben ist und für jede Spalte bzw. Zeile  ändert?
             assignments   {
                 id = "ID" // String = Header, wenn vorhanden
                 not_lower = 1
@@ -259,7 +207,7 @@ mod test {
                     lower "lower" {
                         variables = "not_lower"
                     }
-                     combine "label"{ // todo new to combine
+                     combine "label"{
                             variables = [0, "lower"]//"{$0}{$lower}"
                             separator = "_"
                             prefix = "BIZ_"
