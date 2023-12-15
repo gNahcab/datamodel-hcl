@@ -1,14 +1,16 @@
-use hcl::{Attribute, Block};
+use hcl::{Attribute, Block, Expression};
 use crate::errors::ParseError;
+use crate::transform_parse::domain::header_value::{HeaderValue, U8implementation};
+use crate::transform_parse::domain::methods_domain::wrapper_trait::Wrapper;
 
 
 #[derive(Debug)]
 pub struct WrapperLowerUpperMethod(pub(crate) hcl::Block);
 
-
+#[derive(Debug)]
 struct TransientStructureLowerUpperMethod{
     output: String,
-    input: Option<String>,
+    input: Option<HeaderValue>,
 }
 
 impl TransientStructureLowerUpperMethod {
@@ -18,11 +20,22 @@ impl TransientStructureLowerUpperMethod {
             input: None,
         }
     }
-    pub(crate) fn add_input(&mut self, variable: String) -> Result<(), ParseError> {
+    pub(crate) fn add_input(&mut self, input: Expression) -> Result<(), ParseError> {
         if self.input.is_some() {
             return Err(ParseError::ValidationError(format!("found more than one 'input'-declaration in method '{:?}'.",self.output)));
         }
-        self.input = Option::from(variable);
+        let input_header_value = match input {
+            Expression::Number(value) => {
+                HeaderValue::Number(value.as_u8()?)
+            }
+            Expression::String(value) => {
+                HeaderValue::Name(value)
+            }
+            _ => {
+                return Err(ParseError::ValidationError(format!("error in lower-upper-method '{:?}'. 'input'-expression can only be of type 'String' or 'Number' but found this: '{:?}'", self, input)));
+            }
+        };
+        self.input = Option::from(input_header_value);
         Ok(())
     }
     pub(crate) fn is_complete(&self) -> Result<(), ParseError> {
@@ -41,32 +54,15 @@ impl WrapperLowerUpperMethod {
         let transient_structure = get_transient_structure(&self)?;
         Ok(UpperMethod{ output: transient_structure.output, input: transient_structure.input.unwrap()})
     }
-    fn no_blocks(&self) -> Result<(), ParseError> {
-        let blocks: Vec<&Block> = self.0.body.blocks().collect();
-        if blocks.len() != 0 {
-            return Err(ParseError::ValidationError(format!("found those blocks '{:?}' in method '{:?}', but blocks are not allowed.",blocks, self)));
-        }
-        Ok(())
-    }
-    fn get_name(&self) -> Result<String, ParseError> {
-        if self.0.labels.len() == 0 {
-            return Err(ParseError::ValidationError(format!("no label found for method: '{:?}'", self)));
-        }
-        if self.0.labels.len() > 1 {
-            return Err(ParseError::ValidationError(format!("this method should have one label but has more than one: '{:?}'", self.0.labels)));
-        }
-        return Ok(self.0.labels.get(0).unwrap().as_str().to_string());
-    }
 }
 
 fn get_transient_structure(wrapper: &WrapperLowerUpperMethod) -> Result<TransientStructureLowerUpperMethod, ParseError> {
-    wrapper.no_blocks()?;
-    let mut transient_structure: TransientStructureLowerUpperMethod = TransientStructureLowerUpperMethod::new( wrapper.get_name()?);
-    let attributes: Vec<&Attribute> = wrapper.0.body.attributes().collect();
-    for attribute in attributes {
+    wrapper.0.no_blocks()?;
+    let mut transient_structure: TransientStructureLowerUpperMethod = TransientStructureLowerUpperMethod::new( wrapper.0.get_output()?);
+    for attribute in wrapper.0.attributes() {
         match attribute.key.as_str() {
             "input" => {
-                transient_structure.add_input(attribute.expr.to_string())?;
+                transient_structure.add_input(attribute.expr.to_owned())?;
             }
             _ => {
                 return Err(ParseError::ValidationError(format!("found this unknown attribute '{:?}' in method '{:?}'.",attribute, transient_structure.output)));
@@ -79,12 +75,12 @@ fn get_transient_structure(wrapper: &WrapperLowerUpperMethod) -> Result<Transien
 #[derive(Debug)]
 pub struct LowerMethod{
 output: String,
-    input: String,
+    input: HeaderValue,
 }
 #[derive(Debug)]
 pub struct UpperMethod{
     output: String,
-    input: String,
+    input: HeaderValue,
 }
 
 #[cfg(test)]

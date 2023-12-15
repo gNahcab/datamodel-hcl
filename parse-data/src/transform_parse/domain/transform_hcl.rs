@@ -117,12 +117,29 @@ impl TransientStructureTransformHCL {
         Ok(())
     }
     pub(crate) fn is_consistent(&self) -> Result<(), ParseError> {
-        //check if worksheet-info match with "sheets"-number
-        //check if transform = "xlsx" matches with statements in worksheet-info (maybe later, if we have filemaker etc.)
-        todo!()
+        //check if worksheet-info matches with "sheets"-number(which sheets were described vs which sheets should be checked)
+        if self.sheets.is_empty() && self.all_sheets.is_none() {
+            return Err(ParseError::ValidationError(format!("'all_sheets'-attribute and 'sheets'-array aren't provided, one of them must be provided")));
+        }
+        if !self.sheets.is_empty() && self.all_sheets.is_some() {
+            return Err(ParseError::ValidationError(format!("'all_sheets'-attribute and 'sheets'-array are provided, but only one of them should be provided")));
+        }
+        if !self.sheets.is_empty() {
+            let worksheet_numbers: Vec<&usize> = self.worksheets.iter().map(|(number, _)|number).collect();
+
+            let not_existing: Vec<&&usize> = worksheet_numbers.iter().filter(|number| !self.sheets.contains(number)).collect();
+            if !not_existing.is_empty() {
+                return Err(ParseError::ValidationError(format!("provided more described worksheets than sheet-numbers provided, described: {:?}, sheet-numbers: {:?}", worksheet_numbers, self.sheets)));
+            }
+            let not_existing: Vec<&usize> = self.sheets.iter().filter(|number| !worksheet_numbers.contains(number)).collect();
+            if !not_existing.is_empty() {
+                return Err(ParseError::ValidationError(format!("provided less described worksheets than sheet-numbers provided, described: {:?}, sheet-numbers: {:?}", worksheet_numbers, self.sheets)));
+            }
+        }
+        //check if transform = "xlsx" matches with statements in worksheet-info (in case TransformHCL could  be used for Filemarker, SQL etc. as well)
+        Ok(())
     }
-    pub(crate) fn as_worksheets(&self) -> Vec<WorksheetInfo> {
-        //should this be  as worksheets or as something else?
+    pub(crate) fn to_worksheets(&self) -> Vec<WorksheetInfo> {
         todo!()
     }
 }
@@ -171,7 +188,7 @@ impl TryFrom<hcl::Body> for TransformHCL {
             }
         }
         transient_transform_hcl.is_consistent()?;
-        Ok(TransformHCL::new(transient_transform_hcl.as_worksheets()))
+        Ok(TransformHCL::new(transient_transform_hcl.to_worksheets()))
     }
 }
 impl TransformHCL {
@@ -194,9 +211,9 @@ mod test {
             sheet "1" {
                 structured_by = "row"
                 resource = "Person" //TODO wie wenn Ressource nur in einer Spalte oder Zeile festgeschrieben ist und für jede Spalte bzw. Zeile  ändert?
-            assignments   {
+            assignments  {
                 id = "ID" // String = Header, wenn vorhanden
-                not_lower = 1
+                not_lowered = 1
                 hasName = 2
                 hasIdentifier = 3
                 hasChildren = 4
@@ -205,18 +222,21 @@ mod test {
 
                 transformations {
                     lower "lower" {
-                        variables = "not_lower"
+                        input = "not_lower"
                     }
                      combine "label"{
-                            variables = [0, "lower"]//"{$0}{$lower}"
+                            input = [0, "lower"]//"{$0}{$lower}"
                             separator = "_"
                             prefix = "BIZ_"
                             suffix = "_ZIP"
                     }
                  replace "hasIdentifier" {
-                        variables = [0]
+                        input = 1
                         replace = ["DICT", "DICTIONARY"]
-                        behavior = "lazy"
+                        condition {
+                         behavior = "lazy"
+                            target = "part"
+                        }
                     }
 
                 }
@@ -228,6 +248,7 @@ mod test {
         let result: Result<TransformHCL, ParseError> = body.try_into();
         println!("{:?}", result);
         assert!(result.is_ok())
+
     }
     #[test]
     fn test_read_transform_complex() {

@@ -104,6 +104,8 @@ impl TransientStructureSheetInfo {
 pub struct SheetInfo {
     pub(crate) structured_by: OrganizedBy,
     pub(crate) resource: Option<String>,
+    pub(crate) assignments: Assignments,
+    pub(crate) transformations: Option<Transformations>,
 }
 
 impl SheetInfo {
@@ -111,7 +113,9 @@ impl SheetInfo {
         let structured_by: OrganizedBy = OrganizedBy::from_str(transient_structure.structured_by.unwrap().to_string())?;
         Ok(SheetInfo{
             structured_by,
-            resource:transient_structure.resource
+            resource:transient_structure.resource,
+            assignments: transient_structure.assignments.unwrap(),
+            transformations: transient_structure.transformations,
         })
     }
 }

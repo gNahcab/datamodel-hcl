@@ -1,12 +1,13 @@
-use hcl::{Attribute, Block};
+use hcl::{Attribute, Block, Expression};
 use crate::errors::ParseError;
+use crate::transform_parse::domain::header_value::{HeaderMethods, HeaderValue};
 use crate::transform_parse::domain::methods_domain::wrapper_trait::Wrapper;
 
 
 pub struct WrapperCombineMethod (pub(crate) Block);
 #[derive(Debug)]
 struct TransientStructureCombineMethod {
-    input: Vec<String>,
+    input: Option<Vec<HeaderValue>>,
     output: String,
     separator: Option<String>,
     prefix: Option<String>,
@@ -16,15 +17,31 @@ struct TransientStructureCombineMethod {
 impl TransientStructureCombineMethod {
     fn new(output: String) -> TransientStructureCombineMethod {
         TransientStructureCombineMethod{
-            input: vec![],
+            input: None,
             output,
             separator: None,
             prefix: None,
             suffix: None,
         }
     }
-    pub(crate) fn add_input(&mut self, input: String) {
-        self.input.push(input);
+    pub(crate) fn add_input(&mut self, input: Expression) -> Result<(), ParseError> {
+        if self.input.is_some() {
+            return Err(ParseError::ValidationError(format!("method: '{:?}' has multiple input-attributes", self)));
+        }
+        match input {
+            Expression::Array(array) => {
+                let str_vec:Vec<HeaderValue> = array.iter().map(|expr|expr.to_header_value().unwrap()).collect();
+
+                if str_vec.len() != 2 {
+                    return Err(ParseError::ValidationError(format!("error in combine-method '{:?}'. Input-attributes array doesn't have exactly two entries.", self)));
+                }
+                self.input = Option::from(str_vec);
+            }
+            _ => {
+                return Err(ParseError::ValidationError(format!("combine-methods: '{:?}' input-attribute is not an array", self)));
+            }
+        }
+        Ok(())
     }
     pub(crate) fn add_separator(&mut self, separator: String) -> Result<(), ParseError>{
         if self.separator.is_some() {
@@ -47,12 +64,16 @@ impl TransientStructureCombineMethod {
         self.suffix = Option::from(suffix);
         Ok(())
     }
-    pub(crate) fn add_output(&mut self, output: String) {
-        self.output = output;
-    }
 
     pub(crate) fn is_consistent(&self) -> Result<(), ParseError> {
-        todo!()
+        if self.input.is_none() {
+            return Err(ParseError::ValidationError(format!("combine-method: '{:?}' doesn't have an input-attribute provided", self)));
+        }
+        if self.separator.is_none() {
+            return Err(ParseError::ValidationError(format!("combine-method: '{:?}' doesn't have a separator provided", self)));
+        }
+        // suffix, prefix are optional
+        Ok(())
     }
 }
 
@@ -62,11 +83,10 @@ impl WrapperCombineMethod {
     pub(crate) fn to_combine_method(&self) -> Result<CombineMethod, ParseError> {
         let mut transient_structure = TransientStructureCombineMethod::new(self.0.get_output()?);
         self.0.no_blocks()?;
-        let attributes: Vec<&Attribute> = self.0.body.attributes().collect();
-        for attribute in attributes {
+        for attribute in self.0.attributes() {
             match attribute.key.as_str() {
                 "input" => {
-                    transient_structure.add_input(attribute.expr.to_string());
+                    transient_structure.add_input(attribute.expr.to_owned())?;
                 }
                 "separator" => {
                     transient_structure.add_separator(attribute.expr.to_string())?;
@@ -84,30 +104,22 @@ impl WrapperCombineMethod {
 
         }
         transient_structure.is_consistent()?;
-        println!("labels: {:?}", self.0.labels);
-        println!("identifier: {:?}",  self.0.identifier);
 
         Ok(CombineMethod{
-            input_variables: vec![],
-            output_variable: "".to_string(),
-            middle: None,
-            prefix: None,
-            suffix: None,
+            input: transient_structure.input.unwrap(),
+            output: transient_structure.output,
+            separator: transient_structure.separator,
+            prefix: transient_structure.prefix,
+            suffix: transient_structure.suffix,
         })
 
     }
 }
-impl TransientStructureCombineMethod {
-}
-
-impl WrapperCombineMethod {
-
-}
 #[derive(Debug)]
 pub struct CombineMethod{
-    input_variables: Vec<String>,
-    output_variable: String,
-    middle: Option<String>,
+    input: Vec<HeaderValue>,
+    output: String,
+    separator: Option<String>,
     prefix: Option<String>,
     suffix: Option<String>,
 }
@@ -117,13 +129,14 @@ mod test {
     use crate::transform_parse::domain::methods_domain::combine_method::WrapperCombineMethod;
 
     #[test]
-    fn test_read_simple_transform_hcl() {
+    fn test_combine_method() {
         let block = block!(combine "new_ID"{
             input = [0, "lower"]//"{$0}{$lower}"
             separator = "_"
             prefix = "BIZ_"
             suffix = "_ZIP"});
         let result = WrapperCombineMethod(block.to_owned()).to_combine_method();
-        assert!(result.is_ok())
+        println!("{:?}", result);
+        assert!(result.is_ok());
     }
 }

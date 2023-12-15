@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use hcl::{Attribute, Expression};
 use crate::errors::ParseError;
+use crate::transform_parse::domain::header_value::{HeaderMethods, HeaderValue};
 
 #[derive(Debug)]
 pub struct AssignmentsWrapper(pub(crate)hcl::Block);
@@ -10,38 +11,50 @@ impl AssignmentsWrapper {
         let mut assignments = Assignments::new();
         let attributes: Vec<&Attribute> = self.0.body().attributes().collect();
         for attribute in attributes {
-            match &attribute.expr {
-                Expression::Number(value) => {
-                    assignments.add_pair(attribute.key.as_str(), value.to_string())?;
-                }
-                Expression::String(value) => {
-                    assignments.add_pair(attribute.key.as_str(), value.to_string());
-                }
-                _ => {
-                    return Err(ParseError::ValidationError(format!("error in assignments: cannot handle type of value expression: '{:?}'", attribute)));
-                }
-            }
+            assignments.add_pair(attribute.key.as_str(), &attribute.expr)?;
         }
-        Ok(Assignments{ name_to_assignments: Default::default() })
+        Ok(assignments)
     }
 }
 
 
 #[derive(Debug)]
 pub struct Assignments {
-    pub(crate) name_to_assignments: HashMap<String, String>
+    pub(crate) assignments_to_header_value: HashMap<String, HeaderValue>
 }
 
 
 impl Assignments {
     fn new() -> Assignments{
-        Assignments{ name_to_assignments: Default::default() }
+        Assignments{ assignments_to_header_value: Default::default() }
     }
-    pub(crate) fn add_pair(&mut self, name_in_dm: &str, identifier: String) -> Result<(), ParseError> {
-        if self.name_to_assignments.get(name_in_dm).is_some() {
+    pub(crate) fn add_pair(&mut self, name_in_dm: &str, identifier: &Expression) -> Result<(), ParseError> {
+        if self.assignments_to_header_value.get(name_in_dm).is_some() {
             return Err(ParseError::ValidationError(format!("duplicate in assignment, this name already exists: '{}'", name_in_dm)));
         }
-        self.name_to_assignments.insert(name_in_dm.to_string(), identifier.to_string());
+        self.assignments_to_header_value.insert(name_in_dm.to_string(), identifier.to_header_value()?);
         Ok(())
+    }
+}
+#[cfg(test)]
+mod test {
+    use hcl::block;
+    use crate::transform_parse::domain::assignment::AssignmentsWrapper;
+    use crate::transform_parse::domain::methods_domain::combine_method::WrapperCombineMethod;
+
+    #[test]
+    fn test_assignments() {
+        let block = block!( assignments {
+                id = "ID" // String = Header, wenn vorhanden
+                not_lowered = 1
+                hasName = 2
+                hasIdentifier = 3
+                hasChildren = 4
+                hasExternalLink = 5
+            }
+        );
+        let result = AssignmentsWrapper(block).to_assignments();
+        println!("{:?}", result);
+        assert!(result.is_ok());
     }
 }
