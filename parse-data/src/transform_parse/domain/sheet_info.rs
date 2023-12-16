@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use hcl::{Attribute, Block, body, Body, Identifier};
 use crate::errors::ParseError;
 use crate::transform_parse::domain::organized_by::OrganizedBy;
@@ -12,6 +11,7 @@ pub struct SheetInfoWrapper (pub(crate) Body);
 struct TransientStructureSheetInfo {
     structured_by: Option<String>,
     resource: Option<String>,
+    resource_row: Option<String>,
     assignments: Option<Assignments>,
     transformations: Option<Transformations>,
 }
@@ -25,16 +25,13 @@ impl SheetInfoWrapper {
         for attribute in attributes {
             match attribute.key.as_str() {
                 "structured_by" => {
-                    if transient_structure.structured_by.is_some() {
-                        return Err(ParseError::ValidationError(format!("error in sheet: found duplicate for 'structured_by' in: '{:?}'", self)));
-                    }
-                    transient_structure.structured_by = Option::from(remove_useless_quotation_marks(attribute.expr.to_string()));
+                    transient_structure.add_structured_by(attribute.expr.to_string())?;
                 },
                 "resource" => {
-                    if transient_structure.resource.is_some() {
-                        return Err(ParseError::ValidationError(format!("error in sheet: found duplicate for 'resource' in: '{:?}'", self)));
-                    }
-                    transient_structure.resource = Option::from(remove_useless_quotation_marks(attribute.expr.to_string()));
+                    transient_structure.add_resource(attribute.expr.to_string())?;
+                }
+                "resource_row" => {
+                    transient_structure.add_resource_row(attribute.expr.to_string())?;
                 }
                 _ => {
                     return Err(ParseError::ValidationError(format!("attribute with name '{:?}' not allowed in 'sheet'", attribute.key)));
@@ -67,9 +64,32 @@ impl TransientStructureSheetInfo {
         TransientStructureSheetInfo {
             structured_by: None,
             resource: None,
+            resource_row: None,
             assignments: None,
             transformations: None,
         }
+    }
+    pub(crate) fn add_resource_row(&mut self, resource_row_string: String) -> Result<(), ParseError> {
+        if self.resource_row.is_some() {
+            return Err(ParseError::ValidationError(format!("error in sheet: found duplicate for 'resource_row' in: '{:?}'", self)));
+        }
+        self.resource_row = Option::from(remove_useless_quotation_marks(resource_row_string));
+        Ok(())
+    }
+
+    pub(crate) fn add_resource(&mut self, resource_string: String) -> Result<(), ParseError> {
+        if self.resource.is_some() {
+            return Err(ParseError::ValidationError(format!("error in sheet: found duplicate for 'resource' in: '{:?}'", self)));
+        }
+        self.resource = Option::from(remove_useless_quotation_marks(resource_string));
+        Ok(())
+    }
+    pub(crate) fn add_structured_by(&mut self, structured_by_string: String) -> Result<(), ParseError> {
+        if self.structured_by.is_some() {
+            return Err(ParseError::ValidationError(format!("error in sheet: found duplicate for 'structured_by' in: '{:?}'", self)));
+        }
+        self.structured_by = Option::from(remove_useless_quotation_marks(structured_by_string));
+        Ok(())
     }
 
     pub(crate) fn add_assignments(&mut self, assignments: Assignments) -> Result<(), ParseError> {
@@ -90,10 +110,16 @@ impl TransientStructureSheetInfo {
 
     pub(crate) fn is_complete(&self) -> Result<(), ParseError> {
         if self.structured_by.is_none() {
-            return Err(ParseError::ValidationError(format!("Sheet should contain 'structured_by' but it doesn't: '{:?}'", self)));
+            return Err(ParseError::ValidationError(format!("Sheet should contain 'structured_by'-attribute but it doesn't: '{:?}'", self)));
+        }
+        if self.resource.is_none() && self.resource_row.is_none() {
+            return Err(ParseError::ValidationError(format!("Sheet should contain 'resource'-attribute or 'resource_row'-attribute but it doesn't: '{:?}'", self)));
+        }
+        if self.resource.is_some() && self.resource_row.is_some() {
+            return Err(ParseError::ValidationError(format!("Sheet should contain only 'resource'-attribute or 'resource_row'-attribute but it contains both: '{:?}'", self)));
         }
         if self.assignments.is_none() {
-            return Err(ParseError::ValidationError(format!("Sheet should contain 'assignments' but it doesn't: '{:?}'", self)));
+            return Err(ParseError::ValidationError(format!("Sheet should contain 'assignments'-block but it doesn't: '{:?}'", self)));
         }
         //transformations can be None
         Ok(())
@@ -110,7 +136,7 @@ pub struct SheetInfo {
 
 impl SheetInfo {
     fn new(transient_structure: TransientStructureSheetInfo) -> Result<SheetInfo, ParseError> {
-        let structured_by: OrganizedBy = OrganizedBy::from_str(transient_structure.structured_by.unwrap().to_string())?;
+        let structured_by: OrganizedBy = OrganizedBy::organized_by(transient_structure.structured_by.unwrap().to_string())?;
         Ok(SheetInfo{
             structured_by,
             resource:transient_structure.resource,

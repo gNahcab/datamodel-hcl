@@ -2,6 +2,7 @@ use hcl::{Attribute, Expression};
 use crate::datamodel_parse::remove_useless_quotation_marks;
 use crate::errors::ParseError;
 use crate::transform_parse::domain::header_value::{HeaderMethods, HeaderValue, U8implementation};
+use crate::transform_parse::domain::methods_domain::date_type::DateType;
 use crate::transform_parse::domain::methods_domain::wrapper_trait::Wrapper;
 
 pub struct WrapperToDateMethod(pub(crate) hcl::Block);
@@ -33,11 +34,6 @@ impl TransientStructureToDateMethod {
     fn add_date_type(&mut self, date_type: String) -> Result<(), ParseError> {
         if self.date_type.is_some() {
             return Err(ParseError::ValidationError(format!("error in to_date-method '{:?}'. 'date_type'-attribute multiple times provided", self))); }
-        match date_type.as_str() {
-            "Gregorian" | "Julian" => {}
-            _ => {return Err(ParseError::ValidationError(format!("unknown date_type: '{:?}'. Only 'Gregorian' and 'Julian' allowed", date_type)));}
-
-        }
         self.date_type = Option::from(date_type);
         Ok(())
     }
@@ -70,15 +66,25 @@ impl WrapperToDateMethod {
 
         }
         transient_structure.is_consistent()?;
-        return Ok(ToDateMethod{output: transient_structure.output, input: transient_structure.input.unwrap(),
-        date_type: transient_structure.date_type.unwrap()})
+        return Ok(ToDateMethod::new(transient_structure)?)
     }
 }
 #[derive(Debug)]
 pub struct ToDateMethod{
     output: String,
     input: HeaderValue,
-    date_type: String,
+    date_type: DateType,
+}
+
+impl ToDateMethod {
+    fn new(transient_structure: TransientStructureToDateMethod) -> Result<ToDateMethod, ParseError> {
+        let date_type: DateType = DateType::date_type(transient_structure.date_type.unwrap())?;
+        Ok(ToDateMethod{
+            output: transient_structure.output,
+            input: transient_structure.input.unwrap(),
+            date_type,
+        })
+    }
 }
 #[cfg(test)]
 mod test {

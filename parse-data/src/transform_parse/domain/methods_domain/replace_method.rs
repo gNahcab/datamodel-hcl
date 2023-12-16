@@ -1,8 +1,12 @@
 use std::collections::HashMap;
 use hcl::{Attribute, Expression};
 use hcl::ser::Block;
+use crate::datamodel_parse::remove_useless_quotation_marks;
 use crate::errors::ParseError;
 use crate::transform_parse::domain::header_value::{HeaderMethods, HeaderValue};
+use crate::transform_parse::domain::methods_domain::behavior_type::BehaviorType;
+use crate::transform_parse::domain::methods_domain::target_type::TargetType;
+use crate::transform_parse::domain::methods_domain::to_date_method::ToDateMethod;
 use crate::transform_parse::domain::methods_domain::wrapper_trait::Wrapper;
 
 pub struct WrapperReplaceMethod(pub(crate) hcl::Block);
@@ -60,13 +64,13 @@ impl TransientStructureReplaceMethod {
                     if self.behavior.is_some() {
                         return Err(ParseError::ValidationError(format!("found multiple behavior-attributes  in method '{:?}'.",self.output)));
                     }
-                    self.behavior = Option::from(attribute.expr.to_string());
+                    self.behavior = Option::from(remove_useless_quotation_marks(attribute.expr.to_string()));
                 }
                 "target" => {
                     if self.target.is_some() {
                         return Err(ParseError::ValidationError(format!("found multiple target-attributes  in method '{:?}'.",self.output)));
                     }
-                    self.target = Option::from(attribute.expr.to_string());
+                    self.target = Option::from(remove_useless_quotation_marks(attribute.expr.to_string()));
                 }
                 _ => {
                     return Err(ParseError::ValidationError(format!("found 'condition'-attribute that is unknown in method '{:?}', found: {:?}.",self.output, attribute)));
@@ -121,14 +125,8 @@ impl WrapperReplaceMethod{
 
         transient_structure.is_consistent()?;
 
+        Ok(ReplaceMethod::new(transient_structure)?)
 
-        Ok(ReplaceMethod{
-            output: transient_structure.output,
-            input: transient_structure.input.unwrap(),
-            replace: transient_structure.replace.unwrap(),
-            behavior: transient_structure.behavior.unwrap(),
-            target: transient_structure.target.unwrap(),
-        })
     }
 }
 #[derive(Debug)]
@@ -136,8 +134,24 @@ pub struct ReplaceMethod {
     output: String,
     input: HeaderValue,
     replace: Vec<String>,
-    behavior: String,
-    target: String,
+    behavior: BehaviorType,
+    target: TargetType,
+}
+
+impl ReplaceMethod {
+    fn new(transient_structure: TransientStructureReplaceMethod) -> Result<ReplaceMethod, ParseError> {
+
+       let behavior_type: BehaviorType = BehaviorType::behavior_type(transient_structure.behavior.unwrap())?;
+        let target_type: TargetType = TargetType::target_type(transient_structure.target.unwrap())?;
+
+        Ok(ReplaceMethod{
+            output: transient_structure.output,
+            input: transient_structure.input.unwrap(),
+            replace: transient_structure.replace.unwrap(),
+            behavior: behavior_type,
+            target: target_type,
+        })
+    }
 }
 
 #[cfg(test)]

@@ -3,13 +3,12 @@ use std::num::ParseIntError;
 use hcl::{Block, Body, Expression};
 use crate::errors::ParseError;
 use crate::transform_parse::domain::sheet_info::{SheetInfo, SheetInfoWrapper};
-use crate::transform_parse::domain::worksheet_info::{TransientStructureWorksheetInfo, WorksheetInfo};
 
-struct TransientStructureTransformHCL {
+pub struct TransientStructureTransformHCL {
     transform: Option<String>,
     all_sheets: Option<bool>,
     sheets: Vec<usize>,
-    worksheets: HashMap<usize, TransientStructureWorksheetInfo>,
+    worksheets: HashMap<usize, SheetInfo>,
 }
 
 
@@ -63,57 +62,22 @@ impl TransientStructureTransformHCL {
         if self.all_sheets.is_some() {
             return Err(ParseError::ValidationError(format!("only one declaration of 'transform' allowed, second 'transform' found with expression '{}'", transform_expression)));
         }
-        match transform_expression {
-            Expression::String(value) => {
-                match value.as_str() {
-                    "xlsx" => {
-                        self.transform = Option::from(value.to_string());
-                    }
-                    _ => {
-                        return Err(ParseError::ValidationError(format!("expression of 'transform' is not allowed: '{}'", transform_expression)));
-                    }
-                }
-            }
-            _ => {
-                return Err(ParseError::ValidationError(format!("the type of expression of '' is not valid: '{:?}', only String allowed", transform_expression)));
-            }
-        }
+        self.transform = Option::from(transform_expression.to_string());
         Ok(())
     }
     pub(crate) fn add_sheet_info(&mut self, label: &str, body: &Body) -> Result<(), ParseError> {
-        let sheet_info: SheetInfo = SheetInfoWrapper(body.to_owned()).to_sheet_info()?;
-        self._add_sheet_info_to_worksheet_info(label, sheet_info)?;
-        Ok(())
-    }
-    fn _add_sheet_info_to_worksheet_info(&mut self, label: &str, sheet_info: SheetInfo) -> Result<(), ParseError> {
-        let result:Result<usize, ParseIntError> = label.parse();
-        let label = match result {
+        let result: Result<usize, ParseIntError> =label.to_string().parse::<usize>();
+        let sheet_nr = match result {
             Ok(value) => {value}
             Err(_) => {
-                return Err(ParseError::ValidationError(format!("cannot parse label '{}' of 'sheet'", label)));
+                return Err(ParseError::ValidationError(format!("couldn't parse '{:?}' to usize. This should be a valid number referring to a sheet.",label)));
             }
         };
-        match self.worksheets.get_mut(&label) {
-            None => {
-                self.worksheets.insert(label, TransientStructureWorksheetInfo{
-                    label,
-                    structured_by: Option::from(sheet_info.structured_by),
-                    resource: sheet_info.resource,
-                    resource_row: None,
-                    name_to_assignment: Default::default(),
-                });
-            }
-            Some(transient_structure) => {
-                if transient_structure.structured_by.is_some() {
-                    return Err(ParseError::ValidationError(format!("sheet '{:?}' contains two 'structured_by' but only one allowed", label)));
-                }
-                if transient_structure.resource.is_some() {
-                    return Err(ParseError::ValidationError(format!("sheet '{:?}' contains two 'resource' but only one allowed", label)));
-                }
-                transient_structure.add_structured_by(Option::from(sheet_info.structured_by));
-                transient_structure.add_resource(sheet_info.resource);
-            }
+        let sheet_info: SheetInfo = SheetInfoWrapper(body.to_owned()).to_sheet_info()?;
+        if self.worksheets.get(&sheet_nr).is_some() {
+            return Err(ParseError::ValidationError(format!("the same sheet number was provided multiple times: sheet-nr: {:?}", sheet_nr)));
         }
+        self.worksheets.insert(sheet_nr, sheet_info);
         Ok(())
     }
     pub(crate) fn is_consistent(&self) -> Result<(), ParseError> {
@@ -136,18 +100,20 @@ impl TransientStructureTransformHCL {
                 return Err(ParseError::ValidationError(format!("provided less described worksheets than sheet-numbers provided, described: {:?}, sheet-numbers: {:?}", worksheet_numbers, self.sheets)));
             }
         }
-        //check if transform = "xlsx" matches with statements in worksheet-info (in case TransformHCL could  be used for Filemarker, SQL etc. as well)
+        if self.transform.is_none() {
+            return Err(ParseError::ValidationError(format!("'transform'-attribute and value wasn't provided")));
+        }
+
+        //todo check if transform = "xlsx" matches with statements in worksheet-info (in case TransformHCL could  be used for Filemarker, SQL etc. as well, in such cases we could need some additional statements)
         Ok(())
     }
-    pub(crate) fn to_worksheets(&self) -> Vec<WorksheetInfo> {
-        todo!()
-    }
+
 }
 
 
 #[derive(Debug)]
 pub struct TransformHCL {
-    worksheets: Vec<WorksheetInfo>,
+    worksheets: HashMap<usize, SheetInfo>,
 }
 
 impl TryFrom<hcl::Body> for TransformHCL {
@@ -188,14 +154,13 @@ impl TryFrom<hcl::Body> for TransformHCL {
             }
         }
         transient_transform_hcl.is_consistent()?;
-        Ok(TransformHCL::new(transient_transform_hcl.to_worksheets()))
+        Ok(TransformHCL::new(transient_transform_hcl))
+
     }
 }
 impl TransformHCL {
-    pub(crate) fn new(worksheets: Vec<WorksheetInfo>) -> Self {
-        TransformHCL{
-            worksheets
-        }
+    pub(crate) fn new(transient_structure: TransientStructureTransformHCL) -> Self {
+        TransformHCL{ worksheets: transient_structure.worksheets}
     }
 }
 #[cfg(test)]
@@ -207,7 +172,7 @@ mod test {
     fn test_read_simple_transform_hcl() {
         let body = hcl::body!(
             transform = "xlsx"
-            sheets = [1,2]
+            sheets = [1]
             sheet "1" {
                 structured_by = "row"
                 resource = "Person" //TODO wie wenn Ressource nur in einer Spalte oder Zeile festgeschrieben ist und für jede Spalte bzw. Zeile  ändert?
@@ -248,23 +213,6 @@ mod test {
         let result: Result<TransformHCL, ParseError> = body.try_into();
         println!("{:?}", result);
         assert!(result.is_ok())
-
-    }
-    #[test]
-    fn test_read_transform_complex() {
-        /*
-        let transform_hcl = hcl::block!(
-            transform "xlsx" {
-               sheets = 1,3
-                sheet "1" {
-
-                }
-                sheet "3" {
-
-                }
-            }
-        );
-*/
 
     }
 }

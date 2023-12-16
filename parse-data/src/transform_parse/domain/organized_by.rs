@@ -25,7 +25,7 @@ pub enum OrganizedBy {
 }
 
 impl OrganizedBy {
-    pub(crate) fn from_str(organized_by_str: String) -> Result<OrganizedBy, ParseError> {
+    pub(crate) fn organized_by(organized_by_str: String) -> Result<OrganizedBy, ParseError> {
         let organized_by = match organized_by_str.as_str() {
             "col" => {OrganizedBy::COLOrganized}
             "row" => {OrganizedBy::ROWOrganized}
