@@ -3,6 +3,7 @@ members = [
     "datamodel-hcl-cli",
     "import-data",
     "parse-data",
+    "manipulate-data",
 ]
 resolver = "2"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

@@ -1,16 +1,20 @@
 use std::path::Path;
+use polars::frame::DataFrame;
 use crate::errors::DataImportError;
-pub fn load_xlsx<P: AsRef<Path>>(path: P) -> Result<(),DataImportError> {
+pub fn load_xlsx<P: AsRef<Path>>(path: P) -> Result<Vec<DataFrame>,DataImportError> {
     let result = crate::importers::xlsx_import::import_xlsx::read_xlsx(path)?;
-    Ok(())
+    Ok(result)
 }
 
 pub fn load_hcl<P: AsRef<Path>>(path: P) -> Result<hcl::Body, DataImportError> {
-    let result = crate::importers::hcl_import::import_hcl::read_hcl_body(path);
-    result
+    let result = crate::importers::hcl_import::import_hcl::read_hcl_body(path)?;
+    Ok(result)
 }
 
-
+pub fn load_csv<P: AsRef<Path>>(path: P, delimiter: char) -> Result<DataFrame,DataImportError> {
+    let result = crate::importers::csv_import::import_csv::read_csv(path, delimiter)?;
+    Ok(result)
+}
 
 #[cfg(test)]
 mod test {

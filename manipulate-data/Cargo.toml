@@ -1,5 +1,5 @@
 [package]
-name = "parse-data"
+name = "manipulate-data"
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
@@ -7,9 +7,8 @@ readme = "../README.md"
 description = "this package allows transform and validation DaSCH data models written in HCL"
 authors = ["GNahcab"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-import-data = { path = "../import-data", version = "0.1.0" }
+parse-data = { path = "../parse-data", version = "0.1.0" }
 anyhow.workspace = true
-hcl-rs.workspace = true
+arrow.workspace = true
+polars.workspace = true

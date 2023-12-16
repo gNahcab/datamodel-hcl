@@ -5,25 +5,24 @@ use polars::frame::DataFrame;
 use crate::errors::DataImportError;
 pub fn read_xlsx<P: AsRef<Path>>(path: P) -> Result<Vec<DataFrame>, DataImportError> {
     // todo change method naming: get replace with correct vocabulary for methods_domain, see: https://rust-lang.github.io/api-guidelines/naming.html
-let dataframes: Vec<polars::frame::DataFrame> = get_dataframes(path)?;
+let dataframes: Vec<polars::frame::DataFrame> = dataframes(path)?;
 Ok((dataframes))
 }
 
-fn get_dataframes<P: AsRef<Path>>(path: P) -> Result<Vec<DataFrame>, DataImportError> {
+fn dataframes<P: AsRef<Path>>(path: P) -> Result<Vec<DataFrame>, DataImportError> {
     let mut excel: Xlsx<_> = open_workbook(path)?;
     let mut all_dataframes = vec![];
     for worksheet in excel.worksheets() {
-        let dataframe = get_dataframe(worksheet)?;
+        let dataframe = dataframe(worksheet)?;
         all_dataframes.push(dataframe);
     }
     return Ok(all_dataframes);
 }
 
-fn get_dataframe(worksheet: (String, Range<calamine::DataType>)) -> Result<DataFrame, DataImportError> {
-    // todo change method-name: to_dataframe?
+fn dataframe(worksheet: (String, Range<calamine::DataType>)) -> Result<DataFrame, DataImportError> {
     let mut all_series: Vec<Series> = vec![];
-    for (i, row) in worksheet.1.rows().enumerate(){
-        let row_vec: Vec<String> = row.iter().map(|entry| entry.to_string()).collect();
+    for (i, row) in worksheet.1.columns().enumerate(){
+        let row_vec: Vec<String> = row.iter().map(|entry|(entry.to_string())).collect();
         let s = polars::series::Series::new(i.to_string().as_str(), row_vec);
         all_series.push(s);
     }
