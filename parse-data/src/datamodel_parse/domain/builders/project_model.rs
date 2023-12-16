@@ -221,7 +221,7 @@ mod test {
             labels: vec![
                 Label{ language_abbr: "en".to_string(), text: "a text property".to_string() }
             ],
-            gui_element: "0-n".to_string(),
+            gui_element: Option::from("0-n".to_string()),
             },
             Property{
             name: "hasProperty2".to_string(),
@@ -230,7 +230,7 @@ mod test {
             labels: vec![
                 Label{ language_abbr: "en".to_string(), text: "a uri property from another resource".to_string() }
             ],
-            gui_element: "1-n".to_string(),
+            gui_element: Option::from("1-n".to_string()),
             },
             Property{
             name: "hasLinkToResource".to_string(),
@@ -239,7 +239,7 @@ mod test {
             labels: vec![
                 Label{ language_abbr: "en".to_string(), text: "a text property".to_string() }
             ],
-            gui_element: "0-1".to_string(),
+            gui_element: Option::from("0-1".to_string()),
         }];
         let resources = vec![
             Resource{

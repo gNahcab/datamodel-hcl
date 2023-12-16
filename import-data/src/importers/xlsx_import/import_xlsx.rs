@@ -21,7 +21,7 @@ fn dataframes<P: AsRef<Path>>(path: P) -> Result<Vec<DataFrame>, DataImportError
 
 fn dataframe(worksheet: (String, Range<calamine::DataType>)) -> Result<DataFrame, DataImportError> {
     let mut all_series: Vec<Series> = vec![];
-    for (i, row) in worksheet.1.columns().enumerate(){
+    for (i, row) in worksheet.1.rows().enumerate(){
         let row_vec: Vec<String> = row.iter().map(|entry|(entry.to_string())).collect();
         let s = polars::series::Series::new(i.to_string().as_str(), row_vec);
         all_series.push(s);

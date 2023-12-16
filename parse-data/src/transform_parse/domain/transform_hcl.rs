@@ -113,6 +113,7 @@ impl TransientStructureTransformHCL {
 
 #[derive(Debug)]
 pub struct TransformHCL {
+    //TODO replace this with TransformType: either return CSV or XLSX - related worksheet
     worksheets: HashMap<usize, SheetInfo>,
 }
 

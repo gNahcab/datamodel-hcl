@@ -1,4 +1,5 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::string::ParseError;
 use polars::frame::DataFrame;
 use crate::errors::DataImportError;
 pub fn load_xlsx<P: AsRef<Path>>(path: P) -> Result<Vec<DataFrame>,DataImportError> {
@@ -11,7 +12,7 @@ pub fn load_hcl<P: AsRef<Path>>(path: P) -> Result<hcl::Body, DataImportError> {
     Ok(result)
 }
 
-pub fn load_csv<P: AsRef<Path>>(path: P, delimiter: char) -> Result<DataFrame,DataImportError> {
+pub fn load_csv<P: AsRef<Path>>(path: P, delimiter: char) -> Result<DataFrame,ParseError> where PathBuf: From<P>{
     let result = crate::importers::csv_import::import_csv::read_csv(path, delimiter)?;
     Ok(result)
 }

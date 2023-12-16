@@ -2,12 +2,15 @@
 
  - Information about the project (Shortname, Longname, Shortcode, Keywords, Descriptions, Users etc.) and Lists is not part of HCL-Datamodel(Properties with Listvalues will be dealt with later).
  - In the HCL-Datamodel we care only about ontologies, properties and resources. 
+## Cli Commands
+- evaluate data-model:
+- manipulate xlsx-data:
+- manipulate csv-data:
 
 ## Structure of the file
 - Ontologies, properties and resources don't have to be in a fixed order.
  
 ##### ontologies
-- the datamodel must contain at least one ontology with the name and the label of the ontology.
 - a complete ontology looks like this:
  
 ```hcl
@@ -17,7 +20,14 @@ ontology "rosetta" {
 ```
 
 ##### properties
-- properties are used as properties of a resource, since they can be used in different resources, they are described separately from the resources.
+- every property consists of: 
+ <ol style="padding-left: 40px">
+<li>the <em>name</em> which is provided outside the brackets</li>
+<li>the <em>ontology</em> it is part of</li>
+ <li>the <em>object</em> which describes the value the property contains</li>
+ <li>the <em>labels</em> that describe the property in multiple languages</li>
+</ol>
+
 - a complete property looks like this:
 ```hcl
 property "hasPagenum" {
@@ -30,12 +40,14 @@ property "hasPagenum" {
   }
 }
 ```
-- gui_element: necessary for TextValue-objects (Simpletext, Textarea, Richtext)
+- gui_element: only necessary for object "TextValue" ('Simpletext', 'Textarea', 'Richtext'), "IntValue" or "DecimalValue" (both 'Simpletext' or 'Spinbox')
 ##### resources
-- every resource contains:
-1. one ontology
-2. one labels
-3. zero (?) or more res-props
+- every resource consists of:
+<ol style="padding-left: 40px">
+<li>one <em>ontology</em></li>
+<li>one<em>labels</em></li>
+<li>zero (?) or more <em>res-props</em></li>
+</ol>
 
 - a resource is first a container for a bunch of properties and second it can have additional features that define what it represents
 - a resource that doesn't have any additional features:
@@ -55,15 +67,16 @@ Resource "Text"{
    }
   }
 ```
-- additional features: only StillImageRepresentation
+- possible additional features: other type of Resource, instead of normal Resource: StillImageRepresentation
+- a StillImageRepresentation-Resource would look like this:
 ```hcl
  StillImageRepresentation "Image2D"{
    ontology = "rosetta"
    labels {
-     en = ""
-     de = ""
-     fr = ""
-     it = ""
+    en = "2-dimensional image"
+    de = "add"
+    fr = "add"
+    it = "add"
    }
    hasTitle {
     cardinality = "1"
@@ -80,10 +93,16 @@ Resource "Text"{
 - French (fr)
 - Italian (it)
 - Romansh (ro)
+
 ###### res-props
 - a res-prop is a representation of a property within the resource
-- the name of the res-prop should correspond to a property [see "properties"]
-- within the res-prop container: cardinality, gui_order, ontology
+- the name of the res-prop should correspond to a property [see section "properties"]
+- every res-prop consists of:
+ <ol style="padding-left: 40px">
+  <li>cardinality which describes the number of values that can be attached</li>
+  <li>gui_order which describes the position in the resource</li>
+  <li>the ontology the property is part of</li>
+</ol>
 
 
 # Transform HCL to modify import data
