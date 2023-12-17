@@ -122,33 +122,6 @@ impl TransientStructureProperty {
         }
         Ok(())
     }
-    pub(crate) fn is_correct(&self) -> Result<(), ParseError> {
-        // check that property is formally correct
-        // object-test
-        let object: String = self.object.unwrap().to_string();
-        if !object.contains(":") {
-            // if object starts with ':' or contains ':' (e.g. 'my_ontology:has_prop') the object is part of the data-model and it cannot be checked it exists or not, but references of dsp-base-properties can be tested
-            let valid_objects = [ "BooleanValue","ColorValue", "DateValue","DecimalValue","GeonameValue","IntValue","IntervalValue","ListValue","TextValue","TimeValue","UriValue","AudioRepresentation", "MovingImageRepresentation"];
-            return Err(ParseError::ValidationError(format!("property '{:?}' has 'object' 'TextValue' and gui_element is '{:?}' but it should be one of these: '{:?}'", self.propname, object, text_value_gui_elements)));
-        }
-        // gui-element
-        let gui_element_objects = ["DecimalValue", "IntValue", "TextValue"];
-        if gui_element_objects.contains(&&*object) && self.gui_element.is_none() {
-            return Err(ParseError::ValidationError(format!("property '{:?}' has 'object' '{:?}' but gui_element doesn't exist.", self.propname, object)));
-        }
-        if !gui_element_objects.contains(&&*object) && self.gui_element.is_some() {
-            return Err(ParseError::ValidationError(format!("property '{:?}' has 'object' '{:?}' but gui_element exists, gui_element is only used with these objects: '{:?}'", self.propname, object, gui_element_objects)));
-        }
-        let text_value_gui_elements = ["Richtext", "Textarea", "Simpletext"];
-        if object == "TextValue" && !text_value_gui_elements.contains(&&*self.gui_element.unwrap()) {
-            return Err(ParseError::ValidationError(format!("property '{:?}' has 'object' '{:?}' and gui_element is '{:?}' but it should be one of these: '{:?}'", self.propname, object, self.gui_element.unwrap(), text_value_gui_elements)));
-        }
-        let int_value_gui_elements = ["Spinbox", "Simpletext"];
-        if object == "DecimalValue" || object == "IntValue" && !int_value_gui_elements.contains(&&*self.gui_element.unwrap()) {
-            return Err(ParseError::ValidationError(format!("property '{:?}' has 'object' '{:?}' and gui_element is '{:?}' but it should be one of these: '{:?}'", self.propname, object, self.gui_element.unwrap(), text_value_gui_elements)));
-        }
-        Ok(())
-    }
 }
 
 
@@ -173,7 +146,6 @@ impl PropertyWrapper {
         transient_structure_property.add_labels(blocks)?;
 
         transient_structure_property.is_complete()?;
-        transient_structure_property.is_correct()?;
 
         Ok(Property::new(transient_structure_property))
     }

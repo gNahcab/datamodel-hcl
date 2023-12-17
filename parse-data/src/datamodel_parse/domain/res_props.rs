@@ -1,3 +1,4 @@
+use std::num::ParseIntError;
 use crate::datamodel_parse::remove_useless_quotation_marks;
 use crate::errors::ParseError;
 
@@ -5,7 +6,7 @@ use crate::errors::ParseError;
 pub struct ResProp {
     pub(crate) name: String,
     pub(crate) cardinality: String,
-    pub(crate) gui_order: String,
+    pub(crate) gui_order: usize,
     pub(crate) ontology: String,
 }
 
@@ -14,7 +15,7 @@ pub struct ResPropWrapper (pub(crate) hcl::Block);
 struct TransientStructureResProp {
     propname: String,
     cardinality: Option<String>,
-    gui_order: Option<String>,
+    gui_order: Option<usize>,
     ontology: Option<String>,
 }
 
@@ -44,6 +45,13 @@ impl TransientStructureResProp {
             return Err(ParseError::ValidationError(String::from("multiple gui_orders were provided to res_prop")));
         }
         let gui_order = remove_useless_quotation_marks(new_gui_order);
+        let gui_order_maybe = gui_order.parse::<usize>();
+        let gui_order = match gui_order_maybe {
+            Ok(value) => {value}
+            Err(_) => {
+                return Err(ParseError::ValidationError(String::from(format!("cannot parse this gui_order-expression '{:?}' to usize. Is it a number?", gui_order))));
+            }
+        };
         self.gui_order = Option::from(gui_order);
         Ok(())
     }
@@ -75,7 +83,6 @@ impl TransientStructureResProp {
 
         Ok(())
     }
-
 }
 impl ResPropWrapper {
     pub fn to_res_prop(&self) -> Result<ResProp, ParseError> {
@@ -133,7 +140,7 @@ mod test {
         assert_eq!(res_props.as_ref().unwrap().name, "hasTitle");
         assert_eq!(res_props.as_ref().unwrap().ontology, "rosetta");
         assert_eq!(res_props.as_ref().unwrap().cardinality, "1");
-        assert_eq!(res_props.as_ref().unwrap().gui_order, "0");
+        assert_eq!(res_props.as_ref().unwrap().gui_order, 0);
     }
 }
 

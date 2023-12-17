@@ -75,7 +75,7 @@ impl TransientStructureResource {
             return Err(ParseError::ValidationError(format!("couldn't find name for resource '{:?}'", self)));
         }
         if self.res_type.is_none() {
-            //todo! Error by where they happen, like RessourceValidationErrror
+            //todo! ErrorNames according to where they happen, like RessourceValidationErrror instead of general ValidationError?
             return Err(ParseError::ValidationError(format!("couldn't find res_type for resource '{:?}'", self)));
         }
         if self.ontology.is_none() {

@@ -51,16 +51,14 @@ fn project_model_is_correct(project_model_builder: &ProjectModelBuilder) -> Resu
 }
 
 fn are_properties_correct(properties: Vec<&Property>, resource_names: Vec<&str>) -> Result<(), ParseError> {
-    // are all properties correct, only valid stuff used?
     // todo: add all knora_objects
-    let knora_objects = ["TextValue", "UriValue", "IntValue", "GeonameValue", "DateValue","TimeValue", "ListValue","ColorValue","BooleanValue","DecimalValue", "StillImageRepresentation", "Region", "Representation", "Resource"];
+    let knora_objects = [ "BooleanValue","ColorValue", "DateValue","DecimalValue","GeonameValue","IntValue","IntervalValue","ListValue","TextValue","TimeValue","UriValue","AudioRepresentation", "MovingImageRepresentation", "StillImageRepresentation", "Region", "Representation", "Resource"];
     for property in properties {
        let object: &String = &property.object;
-
         if knora_objects.contains(&object.as_str()) {
             continue;
         }
-        else if contains_prefix_other_datamodel(object) {
+         if contains_prefix_other_datamodel(object) {
             // don't check for datamodel-prefixes
             continue;
         } else {
@@ -68,8 +66,24 @@ fn are_properties_correct(properties: Vec<&Property>, resource_names: Vec<&str>)
             let reduced = object.as_str().split_at(1);
             // remove ":", to check if it exists in resources
             if !resource_names.contains(&&reduced.1) {
-                return Err(ParseError::ValidationError(format!("resource '{}' doesn't exist in resources", object)));
+                return Err(ParseError::ValidationError(format!("resource '{}' is referenced in property '{}' but it doesn't exist in resources", object, property.name)));
             }
+        }
+        // gui-element
+        let gui_element_objects = ["DecimalValue", "IntValue", "TextValue"];
+        if gui_element_objects.contains(&&**object) && property.gui_element.is_none() {
+            return Err(ParseError::ValidationError(format!("property '{:?}' has 'object' '{:?}' but gui_element doesn't exist.", property.name, object)));
+        }
+        if !gui_element_objects.contains(&&**object) && property.gui_element.is_some() {
+            return Err(ParseError::ValidationError(format!("property '{:?}' has 'object' '{:?}' but gui_element exists, gui_element is only used with these objects: '{:?}'", property.name, object, gui_element_objects)));
+        }
+        let text_value_gui_elements = ["Richtext", "Textarea", "Simpletext"];
+        if object == "TextValue" && !text_value_gui_elements.contains(&&**property.gui_element.as_ref().unwrap()) {
+            return Err(ParseError::ValidationError(format!("property '{:?}' has 'object' '{:?}' and gui_element is '{:?}' but it should be one of these: '{:?}'", property.name, object, property.gui_element.as_ref().unwrap(), text_value_gui_elements)));
+        }
+        let int_value_gui_elements = ["Spinbox", "Simpletext"];
+        if object == "DecimalValue" || object == "IntValue" && !int_value_gui_elements.contains(&&**property.gui_element.as_ref().unwrap()) {
+            return Err(ParseError::ValidationError(format!("property '{:?}' has 'object' '{:?}' and gui_element is '{:?}' but it should be one of these: '{:?}'", property.name, object, property.gui_element.as_ref().unwrap(), text_value_gui_elements)));
         }
     }
     Ok(())
@@ -112,21 +126,13 @@ fn is_res_type_valid(resource: &&&Resource) -> Result<(), ParseError> {
 
 fn check_res_prop(res_prop: &ResProp) -> Result<(), ParseError> {
     // check if res_prop of a resource is formally correct
-    let valid_cardinalities = ["0-1", "0-n", "1-n"];
+    let valid_cardinalities = ["0-1", "0-n","1","1-n"];
     //check cardinalities
     if  !valid_cardinalities.contains(&&*res_prop.cardinality) {
         return Err(ParseError::ValidationError(format!("cardinality '{}' of res_prop '{}' is invalid.", res_prop.cardinality, res_prop.name)));
     }
-    let gui_order:Result<u8, ParseIntError> = res_prop.gui_order.parse();
-    match gui_order {
-        Err(ParseIntError) => {
-            return Err(ParseError::ValidationError(format!("cannot parse gui_order '{}' to u8 of res_prop '{}'", res_prop.gui_order, res_prop.name)));
-        },
-        Ok(gui_order) => {
-            if gui_order <= 0 {
-                return Err(ParseError::ValidationError(format!("gui_order '{}' of res_prop '{}' must be positive and greater than 0", res_prop.gui_order, res_prop.name)));
-            }
-        }
+    if res_prop.gui_order <= 0 {
+        return Err(ParseError::ValidationError(format!("gui_order '{}' of res_prop '{}' is negative, but must be positive.", res_prop.gui_order, res_prop.name)));
     }
     Ok(())
 }
@@ -290,7 +296,7 @@ mod test {
                 ResProp{
                 name: "hasText".to_string(),
                 cardinality: "0-1".to_string(),
-                gui_order: "1".to_string(),
+                gui_order: 1,
                 ontology: "rosetta".to_string(),
             }
             ],

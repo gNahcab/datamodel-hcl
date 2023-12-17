@@ -26,7 +26,8 @@ mod test {
     #[test]
     fn test_import() {
         let result =
-            super::read_datamodel("../../../data/testdata/rosetta.hcl");
+            super::read_datamodel("../data/testdata/rosetta.hcl");
+        println!("result: {:?}", result);
         assert!(result.is_ok());
     }
 }
