@@ -12,4 +12,4 @@ authors = ["GNahcab"]
 [dependencies]
 anyhow.workspace = true
 hcl-rs.workspace = true
-clap.workspace = true
+clap = { workspace = true, features = ["derive"] }
