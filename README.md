@@ -4,14 +4,16 @@
  - In the HCL-Datamodel we care only about ontologies, properties and resources. 
 ## Cli Commands
 - evaluate data-model:
+- evaluate transform-file:
 - manipulate xlsx-data:
 - manipulate csv-data:
 
-## Structure of the file
+## Structure of datamodel-hcl
 - Ontologies, properties and resources don't have to be in a fixed order.
  
 ##### ontologies
 - a complete ontology looks like this:
+- multiple ontologies in one datamodel are possible
  
 ```hcl
 ontology "rosetta" {
@@ -100,18 +102,23 @@ Resource "Text"{
 - every res-prop consists of:
  <ol style="padding-left: 40px">
   <li>cardinality which describes the number of values that can be attached</li>
-  <li>gui_order which describes the position in the resource</li>
+  <li>gui_order which defines the position in the resource</li>
   <li>the ontology the property is part of</li>
 </ol>
 
+- only a few values are allowed in <em>cardinality</em>: 
+  - 0-1
+  - 0-n
+  - 1
+  - 1-n
 
-# Transform HCL to modify import data
-
+# structure of transform-hcl file 
+- Transform-HCL is used to modify import data
 
 ### methods:
 - lower
 - upper
-- add
+- combine 
 - replace
 - to_date
 
