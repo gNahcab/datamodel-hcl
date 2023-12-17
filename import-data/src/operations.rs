@@ -17,6 +17,7 @@ pub fn load_csv<P: AsRef<Path>>(path: P, delimiter: char) -> Result<DataFrame,Pa
     Ok(result)
 }
 
+
 #[cfg(test)]
 mod test {
     #[test]

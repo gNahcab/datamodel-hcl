@@ -128,9 +128,10 @@ Resource "Text"{
 #### upper
  string to uppercase
 
-#### new
-- multiple variables and fixed string elements possible
- -> e.g. new($a_$b) where $a, $b are variables and "_" is a fixed string element
+#### combine 
+- two variables and fixed string elements possible (prefix, middle, suffix)
+
+ -> e.g. combine($a_$b) where $a, $b are variables and "_" is a fixed string element in the middle
 
 #### replace
 - replace elements of a string by another string

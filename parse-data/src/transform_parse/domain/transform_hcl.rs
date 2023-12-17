@@ -1,11 +1,14 @@
+use std::any::Any;
 use std::collections::HashMap;
 use std::num::ParseIntError;
 use hcl::{Block, Body, Expression};
 use crate::errors::ParseError;
+use crate::transform_parse::domain::builders::transform_hcl::TransformHCLBuilder;
 use crate::transform_parse::domain::sheet_info::{SheetInfo, SheetInfoWrapper};
+use crate::transform_parse::domain::transform_type::{TransformName, TransformType, TransformXLSX};
 
 pub struct TransientStructureTransformHCL {
-    transform: Option<String>,
+    pub(crate) transform: Option<String>,
     all_sheets: Option<bool>,
     sheets: Vec<usize>,
     worksheets: HashMap<usize, SheetInfo>,
@@ -80,25 +83,13 @@ impl TransientStructureTransformHCL {
         self.worksheets.insert(sheet_nr, sheet_info);
         Ok(())
     }
-    pub(crate) fn is_consistent(&self) -> Result<(), ParseError> {
+    pub(crate) fn is_complete(&self) -> Result<(), ParseError> {
         //check if worksheet-info matches with "sheets"-number(which sheets were described vs which sheets should be checked)
         if self.sheets.is_empty() && self.all_sheets.is_none() {
             return Err(ParseError::ValidationError(format!("'all_sheets'-attribute and 'sheets'-array aren't provided, one of them must be provided")));
         }
         if !self.sheets.is_empty() && self.all_sheets.is_some() {
             return Err(ParseError::ValidationError(format!("'all_sheets'-attribute and 'sheets'-array are provided, but only one of them should be provided")));
-        }
-        if !self.sheets.is_empty() {
-            let worksheet_numbers: Vec<&usize> = self.worksheets.iter().map(|(number, _)|number).collect();
-
-            let not_existing: Vec<&&usize> = worksheet_numbers.iter().filter(|number| !self.sheets.contains(number)).collect();
-            if !not_existing.is_empty() {
-                return Err(ParseError::ValidationError(format!("provided more described worksheets than sheet-numbers provided, described: {:?}, sheet-numbers: {:?}", worksheet_numbers, self.sheets)));
-            }
-            let not_existing: Vec<&usize> = self.sheets.iter().filter(|number| !worksheet_numbers.contains(number)).collect();
-            if !not_existing.is_empty() {
-                return Err(ParseError::ValidationError(format!("provided less described worksheets than sheet-numbers provided, described: {:?}, sheet-numbers: {:?}", worksheet_numbers, self.sheets)));
-            }
         }
         if self.transform.is_none() {
             return Err(ParseError::ValidationError(format!("'transform'-attribute and value wasn't provided")));
@@ -114,8 +105,11 @@ impl TransientStructureTransformHCL {
 #[derive(Debug)]
 pub struct TransformHCL {
     //TODO replace this with TransformType: either return CSV or XLSX - related worksheet
-    worksheets: HashMap<usize, SheetInfo>,
+    pub transform_type: TransformType,
+    pub transform_name: TransformName
 }
+
+
 
 impl TryFrom<hcl::Body> for TransformHCL {
     type Error = ParseError;
@@ -136,6 +130,7 @@ impl TryFrom<hcl::Body> for TransformHCL {
                 }
             }
         }
+
         let blocks: Vec<&Block> = body.blocks().collect();
         for block in blocks {
             match block.identifier.as_str() {
@@ -154,16 +149,12 @@ impl TryFrom<hcl::Body> for TransformHCL {
                 }
             }
         }
-        transient_transform_hcl.is_consistent()?;
-        Ok(TransformHCL::new(transient_transform_hcl))
+        transient_transform_hcl.is_complete()?;
+        let transform_hcl_builder : TransformHCLBuilder = TransformHCLBuilder::new(transient_transform_hcl);
+        transform_hcl_builder.build()
+    }
+}
 
-    }
-}
-impl TransformHCL {
-    pub(crate) fn new(transient_structure: TransientStructureTransformHCL) -> Self {
-        TransformHCL{ worksheets: transient_structure.worksheets}
-    }
-}
 #[cfg(test)]
 mod test {
     use crate::errors::ParseError;
