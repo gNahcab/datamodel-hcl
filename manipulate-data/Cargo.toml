@@ -9,6 +9,7 @@ authors = ["GNahcab"]
 
 [dependencies]
 parse-data = { path = "../parse-data", version = "0.1.0" }
+import-data = { path = "../import-data", version = "0.1.0" }
 anyhow.workspace = true
 arrow.workspace = true
 polars.workspace = true
