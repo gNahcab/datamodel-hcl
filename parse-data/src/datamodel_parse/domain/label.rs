@@ -1,8 +1,6 @@
-use hcl::{Attribute};
-use hcl::format::{Format, Formatter};
-use crate::datamodel_parse::domain::ontology::Ontology;
-use crate::datamodel_parse::remove_useless_quotation_marks;
-use crate::errors::ParseError;
+use hcl::format::Format;
+use crate::errors::ParsingError;
+use crate::to_2_string::To2String;
 
 #[derive(Debug, PartialEq)]
 pub struct Label{
@@ -26,9 +24,9 @@ impl TransientStructureLabels {
     pub(crate) fn add_label(&mut self, label: Label) {
         self.labels.push(label);
     }
-    pub(crate) fn is_complete(&self) -> Result<(), ParseError> {
+    pub(crate) fn is_complete(&self) -> Result<(), ParsingError> {
         if self.labels.is_empty() {
-            return Err(ParseError::ValidationError(format!("block 'labels' doesn't contain any labels")));
+            return Err(ParsingError::ValidationError(format!("block 'labels' doesn't contain any labels")));
         }
         Ok(())
     }
@@ -36,16 +34,15 @@ impl TransientStructureLabels {
 
 
 impl LabelWrapper {
-    fn to_label(self) -> Result<Label, ParseError> {
-        let mut text = self.0.expr().to_string();
-        text = remove_useless_quotation_marks(text);
+    fn to_label(self) -> Result<Label, ParsingError> {
+        let mut text = self.0.expr().to_string_2()?;
 
         let label = Label{language_abbr:self.0.key().to_string(),text:text.to_string()};
         Ok(label)
     }
 }
 impl LabelBlockWrapper {
-    pub fn to_labels(&self) -> Result<Vec<Label>, ParseError> {
+    pub fn to_labels(&self) -> Result<Vec<Label>, ParsingError> {
         let mut transient_structure_label = TransientStructureLabels::new();
         let label_attributes: Vec<&hcl::Attribute> = self.0.body.attributes().collect();
 
@@ -66,14 +63,14 @@ impl LabelBlockWrapper {
 mod test {
     use hcl::{attribute, block};
     use crate::datamodel_parse::domain::label::{Label, LabelWrapper, LabelBlockWrapper};
-    use crate::errors::ParseError;
+    use crate::errors::ParsingError;
 
     #[test]
     fn test_to_label() {
         let label_body = attribute!(
                 en = "my label"
         );
-        let label: Result<Label, ParseError> = LabelWrapper{ 0: label_body }.to_label();
+        let label: Result<Label, ParsingError> = LabelWrapper{ 0: label_body }.to_label();
         assert!(label.as_ref().is_ok());
         assert_eq!(label.as_ref().unwrap().text, "my label");
         assert_eq!(label.as_ref().unwrap().language_abbr, "en");

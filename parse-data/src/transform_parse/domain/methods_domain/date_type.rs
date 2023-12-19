@@ -1,16 +1,16 @@
-use crate::errors::ParseError;
+use crate::errors::ParsingError;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum DateType {
    Gregorian,
     Julian,
 }
 impl DateType {
-    pub(crate) fn date_type(string: String) -> Result<DateType, ParseError>{
+    pub(crate) fn date_type(string: String) -> Result<DateType, ParsingError>{
         match string.as_str() {
             "Gregorian" => Ok(DateType::Gregorian),
             "Julian" => Ok(DateType::Julian),
-            _ => Err(ParseError::ValidationError(format!("unknown value for 'date'-attribute: {:?}", string))),
+            _ => Err(ParsingError::ValidationError(format!("unknown value for 'date'-attribute: {:?}", string))),
         }
 
     }

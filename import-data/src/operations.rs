@@ -1,10 +1,12 @@
 use std::path::{Path, PathBuf};
-use std::string::ParseError;
+use calamine::Range;
 use polars::frame::DataFrame;
 use crate::errors::DataImportError;
-pub fn load_xlsx<P: AsRef<Path>>(path: P) -> Result<Vec<DataFrame>,DataImportError> {
-    let result = crate::importers::xlsx_import::import_xlsx::read_xlsx(path)?;
-    Ok(result)
+use crate::importers::xlsx_import::import_xlsx::read_xlsx;
+
+
+pub fn load_excel_worksheets<P: AsRef<Path>>(path: P) -> Result<Vec<(String, Range<calamine::DataType>)>, DataImportError> {
+    read_xlsx(path)
 }
 
 pub fn load_hcl<P: AsRef<Path>>(path: P) -> Result<hcl::Body, DataImportError> {
@@ -12,7 +14,7 @@ pub fn load_hcl<P: AsRef<Path>>(path: P) -> Result<hcl::Body, DataImportError> {
     Ok(result)
 }
 
-pub fn load_csv<P: AsRef<Path>>(path: P, delimiter: char) -> Result<DataFrame,ParseError> where PathBuf: From<P>{
+pub fn load_csv_dataframe<P: AsRef<Path>>(path: P, delimiter: char) -> Result<DataFrame,DataImportError> where PathBuf: From<P>{
     let result = crate::importers::csv_import::import_csv::read_csv(path, delimiter)?;
     Ok(result)
 }
@@ -22,12 +24,13 @@ pub fn load_csv<P: AsRef<Path>>(path: P, delimiter: char) -> Result<DataFrame,Pa
 mod test {
     #[test]
     fn test_xlsx_import() {
-            let result = super::load_xlsx("/Users/gregorbachmann/Documents/Gregor/UniBasel/Masterarbeit/Programmierprojekt/datamodel-hcl/data/testdata/OldExcelDocument.xlsx");
+            let vec:Vec<usize> = vec![1];
+            let result = super::load_excel_worksheets("../data/testdata/OldExcelDocument.xlsx");
             assert!(result.is_ok());
     }
     #[test]
     fn test_load_hcl() {
-        let result = super::load_hcl("/Users/gregorbachmann/Documents/Gregor/UniBasel/Masterarbeit/Programmierprojekt/datamodel-hcl/data/testdata/rosetta.hcl");
+        let result = super::load_hcl("../data/testdata/rosetta.hcl");
         assert!(result.is_ok());
     }
 }

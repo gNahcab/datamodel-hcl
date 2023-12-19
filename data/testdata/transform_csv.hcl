@@ -1,7 +1,7 @@
-transform = "xlsx"
-sheets = [1]
-sheet "1" {
-  structured_by = "column"
+transform = "csv"
+delimiter = ";"
+sheet "1"  {
+  structured_by = "row"
   resource = "Person"
   assignments  {
     id = "ID"
@@ -30,6 +30,5 @@ sheet "1" {
         target = "part"
       }
     }
-
   }
 }

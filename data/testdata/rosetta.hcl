@@ -9,7 +9,6 @@ property "hasTime" {
          de = ""
          fr = ""
        }
-      gui_element = "TimeStamp"
     }
 property "hasTextMedium" {
       ontology = "rosetta"
@@ -19,7 +18,6 @@ property "hasTextMedium" {
         de = ""
         fr = ""
       }
-      gui_element = "Searchbox"
 }
 property "hasImage" {
   ontology = "rosetta"
@@ -29,7 +27,6 @@ property "hasImage" {
     de = ""
     fr = ""
   }
-  gui_element = "Searchbox"
 }
 
 property "hasOriginalText" {
@@ -40,7 +37,6 @@ property "hasOriginalText" {
     de = ""
     fr = ""
   }
-  gui_element = "Textarea"
 }
 
 property "hasTranscription" {
@@ -51,7 +47,6 @@ property "hasTranscription" {
     de = ""
     fr = ""
   }
-  gui_element = "Richtext"
 }
 
 property "hasTransliteration" {
@@ -62,7 +57,6 @@ property "hasTransliteration" {
     de = ""
     fr = ""
   }
-  gui_element = "Textarea"
 }
 
 property "hasTranslation" {
@@ -73,7 +67,6 @@ property "hasTranslation" {
     de = ""
     fr = ""
   }
-  gui_element = "Textarea"
 }
 
 property "hasDescription" {
@@ -84,7 +77,6 @@ property "hasDescription" {
     de = ""
     fr = ""
   }
-  gui_element = "Richtext"
 }
 
 property "hasAuthor" {
@@ -95,7 +87,6 @@ property "hasAuthor" {
     de = ""
     fr = ""
   }
-  gui_element = "Searchbox"
 }
 
 property "hasName" {
@@ -106,7 +97,6 @@ property "hasName" {
     de = ""
     fr = ""
   }
-  gui_element = "Simpletext"
 }
 
 property "hasTitle" {
@@ -117,7 +107,6 @@ property "hasTitle" {
     de = ""
     fr = ""
   }
-  gui_element = "Simpletext"
 }
 
 property "hasDate" {
@@ -245,6 +234,16 @@ property "partOf" {
   }
 }
 
+property "hasChildren" {
+  ontology = "rosetta"
+  object = "IntValue"
+  labels {
+    en = "Number of children"
+    de = "Anzahl Kinder"
+    fr = "Nombre d'enfants"
+  }
+}
+
   Resource "Text"{
     ontology = "rosetta"
     labels {
@@ -255,11 +254,70 @@ property "partOf" {
     }
       hasTextMedium{
         cardinality = "0-1"
-        gui_order = "0"
+        gui_order = "1"
         ontology = "rosetta"
       }
   }
 
+  Resource "Person"{
+    ontology = "rosetta"
+    labels {
+      en = "Person"
+      de = "Person"
+      fr = "Personne"
+      it = "Persona"
+    }
+    hasName {
+      cardinality = "1"
+      gui_order = "1"
+      ontology = "rosetta"
+    }
+    hasIdentifier {
+      cardinality = "0-1"
+      gui_order = "2"
+      ontology = "rosetta"
+    }
+    hasChildren {
+      cardinality = "0-1"
+      gui_order = "3"
+      ontology = "rosetta"
+    }
+    hasExternalLink {
+      cardinality = "0-n"
+      gui_order = "4"
+      ontology = "rosetta"
+    }
+  }
+
+Resource "Institution"{
+  ontology = "rosetta"
+  labels {
+    en = "Institution"
+    de = "Institution"
+    fr = "Institution"
+    it = "Istituzione"
+  }
+  hasName {
+    cardinality = "1"
+    gui_order = "1"
+    ontology = "rosetta"
+  }
+  hasIdentifier {
+    cardinality = "0-1"
+    gui_order = "2"
+    ontology = "rosetta"
+  }
+  hasChildren {
+    cardinality = "0-1"
+    gui_order = "3"
+    ontology = "rosetta"
+  }
+  hasExternalLink {
+    cardinality = "0-n"
+    gui_order = "4"
+    ontology = "rosetta"
+  }
+}
   StillImageRepresentation "Image2D" {
     ontology = "rosetta"
     labels {
@@ -270,7 +328,7 @@ property "partOf" {
     }
       hasTitle {
         cardinality = "1"
-        gui_order = "0"
+        gui_order = "1"
         ontology = "rosetta"
       }
   }

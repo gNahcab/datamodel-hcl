@@ -1,17 +1,26 @@
-# Parse and validate DaSCH-Datamodels from HCL using Rust
+<h1> Validate Datamodels, Manipulate Excel-Data using the Rust Programming Language and HCL (Hashi Corp Language)</h1>
 
- - Information about the project (Shortname, Longname, Shortcode, Keywords, Descriptions, Users etc.) and Lists is not part of HCL-Datamodel(Properties with Listvalues will be dealt with later).
- - In the HCL-Datamodel we care only about ontologies, properties and resources. 
-## Cli Commands
+### how to install rust -> todo
+
+
+### Cli Commands 
+ #### how to use Cli commands -> todo
 - evaluate data-model:
 - evaluate transform-file:
 - manipulate xlsx-data:
 - manipulate csv-data:
 
+<h2> Validate HCL-Datamodels using Rust </h2>
+
+ - Information about the project (Shortname, Longname, Shortcode, Keywords, Descriptions, Users etc.) and Lists is not part of HCL-Datamodel(Properties with Listvalues will be dealt with later).
+ - In the HCL-Datamodel we care only about ontologies, properties and resources. 
+
+
 ## Structure of datamodel-hcl
 - Ontologies, properties and resources don't have to be in a fixed order.
  
 ##### ontologies
+-> alle Methoden, die ein Datenmodell transformieren unter directory datamodel_parse
 - a complete ontology looks like this:
 - multiple ontologies in one datamodel are possible
  
@@ -25,8 +34,8 @@ ontology "rosetta" {
 - every property consists of: 
  <ol style="padding-left: 40px">
 <li>the <em>name</em> which is provided outside the brackets</li>
-<li>the <em>ontology</em> it is part of</li>
- <li>the <em>object</em> which describes the value the property contains</li>
+<li>the <em>name of the ontology</em> which it is part of</li>
+ <li>the <em>object</em> which describes the type of value the property contains</li>
  <li>the <em>labels</em> that describe the property in multiple languages</li>
 </ol>
 
@@ -46,13 +55,13 @@ property "hasPagenum" {
 ##### resources
 - every resource consists of:
 <ol style="padding-left: 40px">
-<li>one <em>ontology</em></li>
-<li>one<em>labels</em></li>
-<li>zero (?) or more <em>res-props</em></li>
+<li>one <em>name</em> of ontology</li>
+<li>one pair of <em>labels</em></li>
+<li>zero or more <em>res-props</em></li> TODO: allow ZERO
 </ol>
 
-- a resource is first a container for a bunch of properties and second it can have additional features that define what it represents
-- a resource that doesn't have any additional features:
+- a resource is a container for a bunch of properties
+- currently a resource can have the following types: Resource, StillImageRepresentation, TODO add all
 ```hcl 
 Resource "Text"{
     ontology = "rosetta"
@@ -69,24 +78,7 @@ Resource "Text"{
    }
   }
 ```
-- possible additional features: other type of Resource, instead of normal Resource: StillImageRepresentation
-- a StillImageRepresentation-Resource would look like this:
-```hcl
- StillImageRepresentation "Image2D"{
-   ontology = "rosetta"
-   labels {
-    en = "2-dimensional image"
-    de = "add"
-    fr = "add"
-    it = "add"
-   }
-   hasTitle {
-    cardinality = "1"
-    gui_order = "0"
-    ontology = "rosetta"
-   }
-  }
-```
+
 ###### labels
  should contain one or more language-tags
  currently the following languages are supported:
@@ -107,13 +99,14 @@ Resource "Text"{
 </ol>
 
 - only a few values are allowed in <em>cardinality</em>: 
-  - 0-1
-  - 0-n
-  - 1
-  - 1-n
+  - 0-1: zero or one value
+  - 0-n: zero or n values
+  - 1: one value is mandatory
+  - 1-n: one value is mandatory but more are allowed
 
-# structure of transform-hcl file 
-- Transform-HCL is used to modify import data
+## Manipulate Data
+
+- Transform-HCL is used to manipulate imported data
 
 ### methods:
 - lower

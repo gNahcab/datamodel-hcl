@@ -1,5 +1,5 @@
 use hcl::{Attribute, Block};
-use crate::errors::ParseError;
+use crate::errors::ParsingError;
 use crate::transform_parse::domain::methods_domain::combine_method::{CombineMethod, WrapperCombineMethod};
 use crate::transform_parse::domain::methods_domain::lower_upper_method::{LowerMethod, UpperMethod, WrapperLowerUpperMethod};
 use crate::transform_parse::domain::methods_domain::replace_method::{ReplaceMethod, WrapperReplaceMethod};
@@ -7,7 +7,7 @@ use crate::transform_parse::domain::methods_domain::to_date_method::{ToDateMetho
 
 #[derive(Debug)]
 pub struct TransformationsWrapper (pub(crate) Block);
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Transformations{
     lower_methods:Vec<LowerMethod>,
     upper_methods:Vec<UpperMethod>,
@@ -44,15 +44,15 @@ impl Transformations {
 
 }
 impl TransformationsWrapper {
-    pub fn to_transformations(&self) -> Result<Transformations, ParseError> {
+    pub fn to_transformations(&self) -> Result<Transformations, ParsingError> {
         let mut transformations: Transformations = Transformations::new();
         let attributes: Vec<&Attribute> = self.0.body.attributes().collect();
         if attributes.len() !=0 {
-            return Err(ParseError::ValidationError(format!("found attributes in transformations, but only blocks allowed. Found attributes are: '{:?}'", attributes)));
+            return Err(ParsingError::ValidationError(format!("found attributes in transformations, but only blocks allowed. Found attributes are: '{:?}'", attributes)));
         }
         let blocks: Vec<&Block> = self.0.body.blocks().collect();
         if blocks.len() == 0 {
-            return Err(ParseError::ValidationError(format!("found zero blocks in transformations, but blocks should exist in: '{:?}'", self.0)));
+            return Err(ParsingError::ValidationError(format!("found zero blocks in transformations, but blocks should exist in: '{:?}'", self.0)));
         }
         for block in blocks {
              match block.identifier.as_str() {
@@ -77,7 +77,7 @@ impl TransformationsWrapper {
                     transformations.add_to_date_method(to_date_method);
                 }
                 _ => {
-                    return Err(ParseError::ValidationError(format!("unknown method found in transformations: can't find '{:?}'", block.identifier)));
+                    return Err(ParsingError::ValidationError(format!("unknown method found in transformations: can't find '{:?}'", block.identifier)));
                 }
             };
         }

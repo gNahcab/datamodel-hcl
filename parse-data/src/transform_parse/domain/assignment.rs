@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 use hcl::{Attribute, Expression};
-use crate::errors::ParseError;
+use crate::errors::ParsingError;
 use crate::transform_parse::domain::header_value::{HeaderMethods, HeaderValue};
 
 #[derive(Debug)]
 pub struct AssignmentsWrapper(pub(crate)hcl::Block);
 
 impl AssignmentsWrapper {
-    pub fn to_assignments(&self) -> Result<Assignments, ParseError> {
+    pub fn to_assignments(&self) -> Result<Assignments, ParsingError> {
         let mut assignments = Assignments::new();
         let attributes: Vec<&Attribute> = self.0.body().attributes().collect();
         for attribute in attributes {
@@ -18,7 +18,7 @@ impl AssignmentsWrapper {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Assignments {
     pub(crate) assignments_to_header_value: HashMap<String, HeaderValue>
 }
@@ -28,9 +28,9 @@ impl Assignments {
     fn new() -> Assignments{
         Assignments{ assignments_to_header_value: Default::default() }
     }
-    pub(crate) fn add_pair(&mut self, name_in_dm: &str, identifier: &Expression) -> Result<(), ParseError> {
+    pub(crate) fn add_pair(&mut self, name_in_dm: &str, identifier: &Expression) -> Result<(), ParsingError> {
         if self.assignments_to_header_value.get(name_in_dm).is_some() {
-            return Err(ParseError::ValidationError(format!("duplicate in assignment, this name already exists: '{}'", name_in_dm)));
+            return Err(ParsingError::ValidationError(format!("duplicate in assignment, this name already exists: '{}'", name_in_dm)));
         }
         self.assignments_to_header_value.insert(name_in_dm.to_string(), identifier.to_header_value()?);
         Ok(())

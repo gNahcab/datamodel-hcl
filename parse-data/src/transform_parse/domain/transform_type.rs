@@ -1,11 +1,7 @@
 use std::collections::HashMap;
+use crate::transform_parse::domain::organized_by::OrganizedBy;
 use crate::transform_parse::domain::sheet_info::SheetInfo;
-#[derive(Debug)]
-#[derive(PartialEq)]
-pub enum TransformName {
-    XLSX,
-    CSV
-}
+
 #[derive(Debug)]
 pub enum TransformType {
     XLSX(TransformXLSX),
@@ -15,10 +11,14 @@ pub enum TransformType {
 
 #[derive(Debug)]
 pub struct TransformXLSX {
-    pub(crate) worksheets: HashMap<usize, SheetInfo>
+    pub all_sheets: bool,
+    pub sheet_numbers: Vec<usize>,
+    pub organized_bys: Vec<OrganizedBy>,
+    pub worksheets: Vec<SheetInfo>
 }
 #[derive(Debug)]
 pub struct TransformCSV {
     pub(crate) delimiter: char,
+    pub organized_by: OrganizedBy,
     pub(crate) sheet_info: SheetInfo,
 }

@@ -1,6 +1,6 @@
 use hcl::{Attribute, Block, BlockLabel};
-use crate::datamodel_parse::remove_useless_quotation_marks;
-use crate::errors::ParseError;
+use crate::errors::ParsingError;
+use crate::to_2_string::To2String;
 
 #[derive(Debug, PartialEq)]
 pub struct Ontology {
@@ -14,28 +14,27 @@ struct TransientStructureOntology {
 }
 
 impl TransientStructureOntology {
-    pub(crate) fn add_name(&mut self, name_string: String) -> Result<(), ParseError> {
+    pub(crate) fn add_name(&mut self, name_string: String) -> Result<(), ParsingError> {
         if !self.name.is_none() {
-            return Err(ParseError::ParseProjectModel(String::from(format!("the ontology '{:?}' should have one name and only one name but the ontology has a second '{}' name", self.label, name_string))));
+            return Err(ParsingError::ParseProjectModel(String::from(format!("the ontology '{:?}' should have one name and only one name but the ontology has a second '{}' name", self.label, name_string))));
         }
         self.name = Option::from(name_string);
         Ok(())
         }
-    pub(crate) fn add_label(&mut self, label_value: String) -> Result<(), ParseError> {
+    pub(crate) fn add_label(&mut self, label: String) -> Result<(), ParsingError> {
         if !self.label.is_none() {
-            return Err(ParseError::ParseProjectModel(String::from(format!("the ontology '{:?}' should have one label and only one label but the ontology has a second '{}' label", self.label, label_value))));
+            return Err(ParsingError::ParseProjectModel(String::from(format!("the ontology '{:?}' should have one label and only one label but the ontology has a second '{}' label", self.label, label))));
 
         }
-        let label = remove_useless_quotation_marks(label_value);
         self.label = Option::from(label);
         Ok(())
     }
-    pub(crate) fn is_complete(&self) -> Result<(), ParseError> {
+    pub(crate) fn is_complete(&self) -> Result<(), ParsingError> {
         if self.name.is_none() {
-            return Err(ParseError::ParseProjectModel(String::from(format!("the ontology with label '{:?}' doesn't have a name", self.label))));
+            return Err(ParsingError::ParseProjectModel(String::from(format!("the ontology with label '{:?}' doesn't have a name", self.label))));
         }
         if self.label.is_none() {
-            return Err(ParseError::ParseProjectModel(String::from(format!("the ontology '{:?}' doesn't have a label", self.name))));
+            return Err(ParsingError::ParseProjectModel(String::from(format!("the ontology '{:?}' doesn't have a label", self.name))));
         }
         Ok(())
     }
@@ -52,7 +51,7 @@ impl TransientStructureOntology {
 
 pub(crate) struct OntologyWrapper(pub(crate) hcl::Block);
 impl OntologyWrapper {
-    pub fn to_ontology(&self) -> Result<Ontology, ParseError> {
+    pub fn to_ontology(&self) -> Result<Ontology, ParsingError> {
         let mut transient_structure_ontology = TransientStructureOntology::new();
         let labels = self.0.labels().to_owned();
         for label in labels {
@@ -62,10 +61,10 @@ impl OntologyWrapper {
         for attribute in attributes {
             match attribute.key.as_str() {
                 "label" => {
-                    transient_structure_ontology.add_label(attribute.expr.to_string())?;
+                    transient_structure_ontology.add_label(attribute.expr.to_string_2()?)?;
                 }
                 _ => {
-                    return Err(ParseError::ValidationError(String::from(format!(
+                    return Err(ParsingError::ValidationError(String::from(format!(
                         "only 'label' allowed for ontology but found '{:?}' in ontology '{:?}'",attribute, transient_structure_ontology.name))));
                 }
             }
@@ -81,7 +80,7 @@ impl OntologyWrapper {
 mod test {
     use hcl::{block};
     use crate::datamodel_parse::domain::ontology::{OntologyWrapper, Ontology};
-    use crate::errors::ParseError;
+    use crate::errors::ParsingError;
 
     #[test]
     fn test_to_ontology() {
@@ -91,7 +90,7 @@ mod test {
             }
         );
         let hcl_transformer: OntologyWrapper = OntologyWrapper(ontology_block);
-        let ontology:Result<Ontology, ParseError> = hcl_transformer.to_ontology();
+        let ontology:Result<Ontology, ParsingError> = hcl_transformer.to_ontology();
         assert!(ontology.is_ok());
         assert_eq!(ontology.as_ref().unwrap().name,"rosetta");
         assert_eq!(ontology.as_ref().unwrap().label,"rosetta_label");

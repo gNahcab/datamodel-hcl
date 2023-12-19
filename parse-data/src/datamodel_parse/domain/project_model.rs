@@ -5,7 +5,7 @@ use crate::datamodel_parse::domain::ontology::{OntologyWrapper, Ontology};
 use crate::datamodel_parse::domain::builders::project_model::ProjectModelBuilder;
 use crate::datamodel_parse::domain::property::{PropertyWrapper, Property};
 use crate::datamodel_parse::domain::resource::{ResourceWrapper, Resource};
-use crate::errors::ParseError;
+use crate::errors::ParsingError;
 
 
 
@@ -29,7 +29,7 @@ impl ProjectModel {
 }
 
 impl TryFrom<hcl::Body> for ProjectModel {
-    type Error = ParseError;
+    type Error = ParsingError;
     fn try_from(body: Body) -> Result<Self, Self::Error> {
         // transform a hcl::Body to a ProjectModel
         let mut project_model_builder: ProjectModelBuilder = ProjectModelBuilder::new();
@@ -37,7 +37,7 @@ impl TryFrom<hcl::Body> for ProjectModel {
         let attributes: Vec<&hcl::Attribute> = body.attributes().collect();
         for attribute in attributes {
             match attribute.key() {
-                _ => return Err(ParseError::ParseProjectModel(String::from(format!("found top attribute-name: '{}'. no attributes are allowed on top-level", attribute.key())))),
+                _ => return Err(ParsingError::ParseProjectModel(String::from(format!("found top attribute-name: '{}'. no attributes are allowed on top-level", attribute.key())))),
             }
         }
         let blocks: Vec<&hcl::Block> = body.blocks().collect();
@@ -56,7 +56,7 @@ impl TryFrom<hcl::Body> for ProjectModel {
                     let resource = ResourceWrapper{0: block.to_owned()}.to_resource()?;
                     &project_model_builder.add_to_resources(resource);
                 },
-                _ => return Err(ParseError::ParseProjectModel(
+                _ => return Err(ParsingError::ParseProjectModel(
                     String::from(format!("found invalid block-name: '{}'. Only 'property', 'Resource', 'StillImageRepresentation' allowed", block.identifier())))),
             }
         }

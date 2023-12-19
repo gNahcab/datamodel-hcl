@@ -13,3 +13,5 @@ authors = ["GNahcab"]
 import-data = { path = "../import-data", version = "0.1.0" }
 anyhow.workspace = true
 hcl-rs.workspace = true
+polars.workspace = true
+calamine.workspace = true

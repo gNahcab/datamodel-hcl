@@ -3,7 +3,7 @@ use std::num::ParseIntError;
 use import_data::errors::DataImportError;
 
 #[derive(Debug)]
-pub enum ParseError {
+pub enum ParsingError {
     DataImportError(DataImportError),
     ParseInt(ParseIntError),
     ParseProjectModel(String),
@@ -11,14 +11,14 @@ pub enum ParseError {
 }
 
 
-impl From<DataImportError> for ParseError {
+impl From<DataImportError> for ParsingError {
     fn from(error: DataImportError) -> Self {
-        ParseError::DataImportError(error)
+        ParsingError::DataImportError(error)
     }
 }
-impl From<ParseIntError> for ParseError {
+impl From<ParseIntError> for ParsingError {
     fn from(error: ParseIntError) -> Self {
-       ParseError::ParseInt(error)
+       ParsingError::ParseInt(error)
     }
 }
 

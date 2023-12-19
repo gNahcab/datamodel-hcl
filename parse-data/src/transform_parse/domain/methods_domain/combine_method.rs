@@ -1,5 +1,5 @@
 use hcl::{Attribute, Block, Expression};
-use crate::errors::ParseError;
+use crate::errors::ParsingError;
 use crate::transform_parse::domain::header_value::{HeaderMethods, HeaderValue};
 use crate::transform_parse::domain::methods_domain::wrapper_trait::Wrapper;
 
@@ -24,53 +24,53 @@ impl TransientStructureCombineMethod {
             suffix: None,
         }
     }
-    pub(crate) fn add_input(&mut self, input: Expression) -> Result<(), ParseError> {
+    pub(crate) fn add_input(&mut self, input: Expression) -> Result<(), ParsingError> {
         if self.input.is_some() {
-            return Err(ParseError::ValidationError(format!("method: '{:?}' has multiple input-attributes", self)));
+            return Err(ParsingError::ValidationError(format!("method: '{:?}' has multiple input-attributes", self)));
         }
         match input {
             Expression::Array(array) => {
                 let str_vec:Vec<HeaderValue> = array.iter().map(|expr|expr.to_header_value().unwrap()).collect();
 
                 if str_vec.len() != 2 {
-                    return Err(ParseError::ValidationError(format!("error in combine-method '{:?}'. Input-attributes array doesn't have exactly two entries.", self)));
+                    return Err(ParsingError::ValidationError(format!("error in combine-method '{:?}'. Input-attributes array doesn't have exactly two entries.", self)));
                 }
                 self.input = Option::from(str_vec);
             }
             _ => {
-                return Err(ParseError::ValidationError(format!("combine-methods: '{:?}' input-attribute is not an array", self)));
+                return Err(ParsingError::ValidationError(format!("combine-methods: '{:?}' input-attribute is not an array", self)));
             }
         }
         Ok(())
     }
-    pub(crate) fn add_separator(&mut self, separator: String) -> Result<(), ParseError>{
+    pub(crate) fn add_separator(&mut self, separator: String) -> Result<(), ParsingError>{
         if self.separator.is_some() {
-            return Err(ParseError::ValidationError(format!("method: '{:?}' has multiple separator-attributes", self)));
+            return Err(ParsingError::ValidationError(format!("method: '{:?}' has multiple separator-attributes", self)));
         }
         self.separator = Option::from(separator);
         Ok(())
     }
-    pub(crate) fn add_prefix(&mut self, prefix: String) -> Result<(), ParseError>{
+    pub(crate) fn add_prefix(&mut self, prefix: String) -> Result<(), ParsingError>{
         if self.prefix.is_some() {
-            return Err(ParseError::ValidationError(format!("method: '{:?}' has multiple prefix-attributes", self)));
+            return Err(ParsingError::ValidationError(format!("method: '{:?}' has multiple prefix-attributes", self)));
         }
         self.prefix = Option::from(prefix);
         Ok(())
     }
-    pub(crate) fn add_suffix(&mut self, suffix: String) -> Result<(), ParseError>{
+    pub(crate) fn add_suffix(&mut self, suffix: String) -> Result<(), ParsingError>{
         if self.suffix.is_some() {
-            return Err(ParseError::ValidationError(format!("method: '{:?}' has multiple suffix-attributes", self)));
+            return Err(ParsingError::ValidationError(format!("method: '{:?}' has multiple suffix-attributes", self)));
         }
         self.suffix = Option::from(suffix);
         Ok(())
     }
 
-    pub(crate) fn is_consistent(&self) -> Result<(), ParseError> {
+    pub(crate) fn is_consistent(&self) -> Result<(), ParsingError> {
         if self.input.is_none() {
-            return Err(ParseError::ValidationError(format!("combine-method: '{:?}' doesn't have an input-attribute provided", self)));
+            return Err(ParsingError::ValidationError(format!("combine-method: '{:?}' doesn't have an input-attribute provided", self)));
         }
         if self.separator.is_none() {
-            return Err(ParseError::ValidationError(format!("combine-method: '{:?}' doesn't have a separator provided", self)));
+            return Err(ParsingError::ValidationError(format!("combine-method: '{:?}' doesn't have a separator provided", self)));
         }
         // suffix, prefix are optional
         Ok(())
@@ -80,7 +80,7 @@ impl TransientStructureCombineMethod {
 
 impl WrapperCombineMethod {
 
-    pub(crate) fn to_combine_method(&self) -> Result<CombineMethod, ParseError> {
+    pub(crate) fn to_combine_method(&self) -> Result<CombineMethod, ParsingError> {
         let mut transient_structure = TransientStructureCombineMethod::new(self.0.get_output()?);
         self.0.no_blocks()?;
         for attribute in self.0.attributes() {
@@ -98,7 +98,7 @@ impl WrapperCombineMethod {
                     transient_structure.add_suffix(attribute.expr.to_string())?;
                 }
                 _ => {
-                    return Err(ParseError::ValidationError(format!("found this unknown attribute '{:?}' in method '{:?}'.",attribute, transient_structure.output)));
+                    return Err(ParsingError::ValidationError(format!("found this unknown attribute '{:?}' in method '{:?}'.", attribute, transient_structure.output)));
                 }
             }
 
@@ -115,7 +115,7 @@ impl WrapperCombineMethod {
 
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CombineMethod{
     input: Vec<HeaderValue>,
     output: String,

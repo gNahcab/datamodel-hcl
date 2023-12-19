@@ -1,6 +1,6 @@
 use std::num::ParseIntError;
-use crate::datamodel_parse::remove_useless_quotation_marks;
-use crate::errors::ParseError;
+use crate::errors::ParsingError;
+use crate::to_2_string::To2String;
 
 #[derive(Debug, PartialEq)]
 pub struct ResProp {
@@ -32,60 +32,57 @@ impl TransientStructureResProp {
     pub(crate) fn add_propname(&mut self, new_propname: &str) {
         self.propname = new_propname.to_string();
     }
-    pub(crate) fn add_ontology(&mut self, new_ontology: String) -> Result<(), ParseError> {
+    pub(crate) fn add_ontology(&mut self, ontology: String) -> Result<(), ParsingError> {
         if !self.ontology.is_none() {
-            return Err(ParseError::ValidationError(String::from("multiple ontologies were provided to res_prop")));
+            return Err(ParsingError::ValidationError(String::from("multiple ontologies were provided to res_prop")));
         }
-        let ontology = remove_useless_quotation_marks(new_ontology);
         self.ontology = Option::from(ontology);
         Ok(())
     }
-    pub(crate) fn add_gui_order(&mut self, new_gui_order: String) -> Result<(), ParseError> {
+    pub(crate) fn add_gui_order(&mut self, gui_order: String) -> Result<(), ParsingError> {
         if !self.gui_order.is_none() {
-            return Err(ParseError::ValidationError(String::from("multiple gui_orders were provided to res_prop")));
+            return Err(ParsingError::ValidationError(String::from("multiple gui_orders were provided to res_prop")));
         }
-        let gui_order = remove_useless_quotation_marks(new_gui_order);
         let gui_order_maybe = gui_order.parse::<usize>();
         let gui_order = match gui_order_maybe {
             Ok(value) => {value}
             Err(_) => {
-                return Err(ParseError::ValidationError(String::from(format!("cannot parse this gui_order-expression '{:?}' to usize. Is it a number?", gui_order))));
+                return Err(ParsingError::ValidationError(String::from(format!("cannot parse this gui_order-expression '{:?}' to usize. Is it a number?", gui_order))));
             }
         };
         self.gui_order = Option::from(gui_order);
         Ok(())
     }
-    pub(crate) fn add_cardinality(&mut self, new_cardinality: String) -> Result<(), ParseError> {
+    pub(crate) fn add_cardinality(&mut self, cardinality: String) -> Result<(), ParsingError> {
         if !self.cardinality.is_none() {
-            return Err(ParseError::ValidationError(String::from("multiple cardinalities was provided to res_prop")));
+            return Err(ParsingError::ValidationError(String::from("multiple cardinalities was provided to res_prop")));
         }
-        let cardinality = remove_useless_quotation_marks(new_cardinality);
         self.cardinality = Option::from(cardinality);
         Ok(())
     }
 
-    pub(crate) fn is_complete(&self) -> Result<(), ParseError> {
+    pub(crate) fn is_complete(&self) -> Result<(), ParsingError> {
         // check if the TransientStructure can be converted into a ResProp-Structure
         if self.propname.is_empty() {
-            return Err(ParseError::ValidationError(String::from(format!("propname doesn't exist or isn't provided correctly in '{:?}'", self))));
+            return Err(ParsingError::ValidationError(String::from(format!("propname doesn't exist or isn't provided correctly in '{:?}'", self))));
         }
         if self.ontology.is_none() {
-            return Err(ParseError::ValidationError(String::from(format!("ontology doesn't exist or isn't provided correctly in '{:?}'", self))));
+            return Err(ParsingError::ValidationError(String::from(format!("ontology doesn't exist or isn't provided correctly in '{:?}'", self))));
         }
 
         if self.cardinality.is_none() {
-            return Err(ParseError::ValidationError(String::from(format!("cardinality name doesn't exist or isn't provided correctly in '{:?}'", self))));
+            return Err(ParsingError::ValidationError(String::from(format!("cardinality name doesn't exist or isn't provided correctly in '{:?}'", self))));
         }
 
         if self.gui_order.is_none() {
-            return Err(ParseError::ValidationError(String::from(format!("gui_order doesn't exist or isn't provided correctly in '{:?}'", self))));
+            return Err(ParsingError::ValidationError(String::from(format!("gui_order doesn't exist or isn't provided correctly in '{:?}'", self))));
         }
 
         Ok(())
     }
 }
 impl ResPropWrapper {
-    pub fn to_res_prop(&self) -> Result<ResProp, ParseError> {
+    pub fn to_res_prop(&self) -> Result<ResProp, ParsingError> {
         let attributes:Vec<&hcl::Attribute> = self.0.body.attributes().collect();
         let mut transient_structure = TransientStructureResProp::new();
         transient_structure.add_propname(self.0.identifier.as_str());
@@ -93,11 +90,11 @@ impl ResPropWrapper {
 
         for attribute in attributes {
         match attribute.key() {
-                "cardinality" => transient_structure.add_cardinality(attribute.expr.to_string())? ,
-                "gui_order" => transient_structure.add_gui_order(attribute.expr.to_string())? ,
-                "ontology" => transient_structure.add_ontology(attribute.expr.to_string())? ,
+                "cardinality" => transient_structure.add_cardinality(attribute.expr.to_string_2()?)? ,
+                "gui_order" => transient_structure.add_gui_order(attribute.expr.to_string_2()?)? ,
+                "ontology" => transient_structure.add_ontology(attribute.expr.to_string_2()?)? ,
                 _ => return Err(
-                    ParseError::ParseProjectModel(
+                    ParsingError::ParseProjectModel(
                         String::from(
                             format!(
                                 "invalid attribute:'{:?}'.\
@@ -123,7 +120,7 @@ impl ResPropWrapper {
 mod test {
     use hcl::{block};
     use crate::datamodel_parse::domain::res_props::{ResProp, ResPropWrapper};
-    use crate::errors::ParseError;
+    use crate::errors::ParsingError;
 
     #[test]
     fn test_into_res_props() {
@@ -134,7 +131,7 @@ mod test {
                 gui_order = "0"
             }
         );
-        let res_props: Result<ResProp, ParseError> = ResPropWrapper{0: res_props_block}.to_res_prop();
+        let res_props: Result<ResProp, ParsingError> = ResPropWrapper{0: res_props_block}.to_res_prop();
         assert!(res_props.is_ok());
         assert!(res_props.as_ref().is_ok());
         assert_eq!(res_props.as_ref().unwrap().name, "hasTitle");

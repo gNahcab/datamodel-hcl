@@ -1199,6 +1199,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "arrow",
+ "import-data",
  "parse-data",
  "polars",
 ]
@@ -1407,8 +1408,10 @@ name = "parse-data"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "calamine",
  "hcl-rs",
  "import-data",
+ "polars",
 ]
 
 [[package]]

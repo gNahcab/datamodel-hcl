@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use hcl::{Attribute, Expression};
 use hcl::ser::Block;
-use crate::datamodel_parse::remove_useless_quotation_marks;
-use crate::errors::ParseError;
+use crate::errors::ParsingError;
+use crate::to_2_string::To2String;
 use crate::transform_parse::domain::header_value::{HeaderMethods, HeaderValue};
 use crate::transform_parse::domain::methods_domain::behavior_type::BehaviorType;
 use crate::transform_parse::domain::methods_domain::target_type::TargetType;
@@ -30,74 +30,74 @@ impl TransientStructureReplaceMethod {
             target: None,
         }
     }
-    fn add_input(&mut self, expression: Expression) -> Result<(), ParseError> {
+    fn add_input(&mut self, expression: Expression) -> Result<(), ParsingError> {
         if self.input.is_some() {
-            return Err(ParseError::ValidationError(format!("found multiple input-attributes  in method '{:?}'.",self.output)));
+            return Err(ParsingError::ValidationError(format!("found multiple input-attributes  in method '{:?}'.", self.output)));
         }
         let header_value = expression.to_header_value()?;
         self.input = Option::from(header_value);
         Ok(())
     }
-    fn add_replace(&mut self, expression: Expression) -> Result<(), ParseError> {
+    fn add_replace(&mut self, expression: Expression) -> Result<(), ParsingError> {
         if self.replace.is_some() {
-            return Err(ParseError::ValidationError(format!("found multiple replace-attributes  in method '{:?}'.",self.output)));
+            return Err(ParsingError::ValidationError(format!("found multiple replace-attributes  in method '{:?}'.", self.output)));
         }
         match expression {
             Expression::Array(array) => {
                 let vec_string: Vec<String> = array.iter().map(|expr|expr.to_string()).collect();
                 if vec_string.len() != 2 {
-                    return Err(ParseError::ValidationError(format!("error in replace-method '{:?}'. 'replace' array doesn't have exactly two entries.", self)));
+                    return Err(ParsingError::ValidationError(format!("error in replace-method '{:?}'. 'replace' array doesn't have exactly two entries.", self)));
                 }
                 self.replace = Option::from(vec_string);
             }
             _ => {
-                return Err(ParseError::ValidationError(format!("found 'replace'-value that is not an array in method '{:?}', found: {:?}.",self.output, expression)));
+                return Err(ParsingError::ValidationError(format!("found 'replace'-value that is not an array in method '{:?}', found: {:?}.", self.output, expression)));
             }
         }
         Ok(())
     }
-    fn add_condition(&mut self, block: hcl::Block) -> Result<(), ParseError> {
+    fn add_condition(&mut self, block: hcl::Block) -> Result<(), ParsingError> {
         block.no_blocks()?;
         for attribute in block.attributes() {
             match attribute.key.as_str() {
                 "behavior" => {
                     if self.behavior.is_some() {
-                        return Err(ParseError::ValidationError(format!("found multiple behavior-attributes  in method '{:?}'.",self.output)));
+                        return Err(ParsingError::ValidationError(format!("found multiple behavior-attributes  in method '{:?}'.", self.output)));
                     }
-                    self.behavior = Option::from(remove_useless_quotation_marks(attribute.expr.to_string()));
+                    self.behavior = Option::from(attribute.expr.to_string_2()?);
                 }
                 "target" => {
                     if self.target.is_some() {
-                        return Err(ParseError::ValidationError(format!("found multiple target-attributes  in method '{:?}'.",self.output)));
+                        return Err(ParsingError::ValidationError(format!("found multiple target-attributes  in method '{:?}'.", self.output)));
                     }
-                    self.target = Option::from(remove_useless_quotation_marks(attribute.expr.to_string()));
+                    self.target = Option::from(attribute.expr.to_string_2()?);
                 }
                 _ => {
-                    return Err(ParseError::ValidationError(format!("found 'condition'-attribute that is unknown in method '{:?}', found: {:?}.",self.output, attribute)));
+                    return Err(ParsingError::ValidationError(format!("found 'condition'-attribute that is unknown in method '{:?}', found: {:?}.", self.output, attribute)));
                 }
             }
         }
         Ok(())
     }
-    fn is_consistent(&self) -> Result<(), ParseError> {
+    fn is_consistent(&self) -> Result<(), ParsingError> {
         if self.input.is_none() {
-            return Err(ParseError::ValidationError(format!("replace-method '{:?}' doesn't have an input-attribute provided", self)));
+            return Err(ParsingError::ValidationError(format!("replace-method '{:?}' doesn't have an input-attribute provided", self)));
         }
         if self.replace.is_none() {
-            return Err(ParseError::ValidationError(format!("replace-method '{:?}' doesn't have a replace-attribute provided", self)));
+            return Err(ParsingError::ValidationError(format!("replace-method '{:?}' doesn't have a replace-attribute provided", self)));
         }
         if self.behavior.is_none() {
-            return Err(ParseError::ValidationError(format!("replace-method '{:?}' doesn't have a behavior-attribute in 'condition'-block provided", self)));
+            return Err(ParsingError::ValidationError(format!("replace-method '{:?}' doesn't have a behavior-attribute in 'condition'-block provided", self)));
         }
         if self.target.is_none() {
-            return Err(ParseError::ValidationError(format!("replace-method '{:?}' doesn't have a target-attribute in 'condition'-block provided", self)));
+            return Err(ParsingError::ValidationError(format!("replace-method '{:?}' doesn't have a target-attribute in 'condition'-block provided", self)));
         }
 
         Ok(())
     }
 }
 impl WrapperReplaceMethod{
-    pub(crate) fn to_replace_method(&self) -> Result<ReplaceMethod, ParseError> {
+    pub(crate) fn to_replace_method(&self) -> Result<ReplaceMethod, ParsingError> {
         let mut transient_structure = TransientStructureReplaceMethod::new(self.0.get_output()?);
         for attribute in self.0.attributes() {
             match attribute.key.as_str() {
@@ -108,7 +108,7 @@ impl WrapperReplaceMethod{
                     transient_structure.add_replace(attribute.expr.to_owned())?;
                 }
                 _ => {
-                    return Err(ParseError::ValidationError(format!("found this unknown attribute '{:?}' in method '{:?}'.",attribute, transient_structure.output)));
+                    return Err(ParsingError::ValidationError(format!("found this unknown attribute '{:?}' in method '{:?}'.", attribute, transient_structure.output)));
                 }
             }
         }
@@ -118,7 +118,7 @@ impl WrapperReplaceMethod{
                     transient_structure.add_condition(block.to_owned())?;
                 }
                 _ => {
-                    return Err(ParseError::ValidationError(format!("found this unknown block '{:?}' in method '{:?}'.",block, transient_structure.output)));
+                    return Err(ParsingError::ValidationError(format!("found this unknown block '{:?}' in method '{:?}'.", block, transient_structure.output)));
                 }
             }
         }
@@ -129,7 +129,7 @@ impl WrapperReplaceMethod{
 
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ReplaceMethod {
     output: String,
     input: HeaderValue,
@@ -139,7 +139,7 @@ pub struct ReplaceMethod {
 }
 
 impl ReplaceMethod {
-    fn new(transient_structure: TransientStructureReplaceMethod) -> Result<ReplaceMethod, ParseError> {
+    fn new(transient_structure: TransientStructureReplaceMethod) -> Result<ReplaceMethod, ParsingError> {
 
        let behavior_type: BehaviorType = BehaviorType::behavior_type(transient_structure.behavior.unwrap())?;
         let target_type: TargetType = TargetType::target_type(transient_structure.target.unwrap())?;

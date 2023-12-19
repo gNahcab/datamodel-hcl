@@ -1,5 +1,5 @@
 use hcl::{Attribute, Block, Expression};
-use crate::errors::ParseError;
+use crate::errors::ParsingError;
 use crate::transform_parse::domain::header_value::{HeaderValue, U8implementation};
 use crate::transform_parse::domain::methods_domain::wrapper_trait::Wrapper;
 
@@ -20,9 +20,9 @@ impl TransientStructureLowerUpperMethod {
             input: None,
         }
     }
-    pub(crate) fn add_input(&mut self, input: Expression) -> Result<(), ParseError> {
+    pub(crate) fn add_input(&mut self, input: Expression) -> Result<(), ParsingError> {
         if self.input.is_some() {
-            return Err(ParseError::ValidationError(format!("found more than one 'input'-declaration in method '{:?}'.",self.output)));
+            return Err(ParsingError::ValidationError(format!("found more than one 'input'-declaration in method '{:?}'.", self.output)));
         }
         let input_header_value = match input {
             Expression::Number(value) => {
@@ -32,31 +32,31 @@ impl TransientStructureLowerUpperMethod {
                 HeaderValue::Name(value)
             }
             _ => {
-                return Err(ParseError::ValidationError(format!("error in lower-upper-method '{:?}'. 'input'-expression can only be of type 'String' or 'Number' but found this: '{:?}'", self, input)));
+                return Err(ParsingError::ValidationError(format!("error in lower-upper-method '{:?}'. 'input'-expression can only be of type 'String' or 'Number' but found this: '{:?}'", self, input)));
             }
         };
         self.input = Option::from(input_header_value);
         Ok(())
     }
-    pub(crate) fn is_complete(&self) -> Result<(), ParseError> {
+    pub(crate) fn is_complete(&self) -> Result<(), ParsingError> {
         if self.input.is_none() {
-            return Err(ParseError::ValidationError(format!("found no 'input'-declaration in method '{:?}'.",self.output)));
+            return Err(ParsingError::ValidationError(format!("found no 'input'-declaration in method '{:?}'.", self.output)));
         }
         Ok(())
     }
 }
 impl WrapperLowerUpperMethod {
-    pub fn to_lower_method(&self) -> Result<LowerMethod, ParseError> {
+    pub fn to_lower_method(&self) -> Result<LowerMethod, ParsingError> {
         let transient_structure = get_transient_structure(&self)?;
         Ok(LowerMethod{ output: transient_structure.output, input: transient_structure.input.unwrap()})
     }
-    pub fn to_upper_method(&self) -> Result<UpperMethod, ParseError> {
+    pub fn to_upper_method(&self) -> Result<UpperMethod, ParsingError> {
         let transient_structure = get_transient_structure(&self)?;
         Ok(UpperMethod{ output: transient_structure.output, input: transient_structure.input.unwrap()})
     }
 }
 
-fn get_transient_structure(wrapper: &WrapperLowerUpperMethod) -> Result<TransientStructureLowerUpperMethod, ParseError> {
+fn get_transient_structure(wrapper: &WrapperLowerUpperMethod) -> Result<TransientStructureLowerUpperMethod, ParsingError> {
     wrapper.0.no_blocks()?;
     let mut transient_structure: TransientStructureLowerUpperMethod = TransientStructureLowerUpperMethod::new( wrapper.0.get_output()?);
     for attribute in wrapper.0.attributes() {
@@ -65,19 +65,19 @@ fn get_transient_structure(wrapper: &WrapperLowerUpperMethod) -> Result<Transien
                 transient_structure.add_input(attribute.expr.to_owned())?;
             }
             _ => {
-                return Err(ParseError::ValidationError(format!("found this unknown attribute '{:?}' in method '{:?}'.",attribute, transient_structure.output)));
+                return Err(ParsingError::ValidationError(format!("found this unknown attribute '{:?}' in method '{:?}'.", attribute, transient_structure.output)));
             } }
 
     }
     transient_structure.is_complete()?;
     Ok(transient_structure)
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LowerMethod{
 output: String,
     input: HeaderValue,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UpperMethod{
     output: String,
     input: HeaderValue,

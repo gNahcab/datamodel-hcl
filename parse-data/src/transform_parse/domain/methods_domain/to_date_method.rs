@@ -1,6 +1,6 @@
-use hcl::{Attribute, Expression};
-use crate::datamodel_parse::remove_useless_quotation_marks;
-use crate::errors::ParseError;
+use hcl::Expression;
+use crate::errors::ParsingError;
+use crate::to_2_string::To2String;
 use crate::transform_parse::domain::header_value::{HeaderMethods, HeaderValue, U8implementation};
 use crate::transform_parse::domain::methods_domain::date_type::DateType;
 use crate::transform_parse::domain::methods_domain::wrapper_trait::Wrapper;
@@ -22,33 +22,33 @@ impl TransientStructureToDateMethod {
             date_type: None,
         }
     }
-    fn add_input(&mut self, input: Expression) -> Result<(), ParseError> {
+    fn add_input(&mut self, input: Expression) -> Result<(), ParsingError> {
         if self.input.is_some() {
-            return Err(ParseError::ValidationError(format!("error in to_date-method '{:?}'. 'input'-attribute multiple times provided", self)));
+            return Err(ParsingError::ValidationError(format!("error in to_date-method '{:?}'. 'input'-attribute multiple times provided", self)));
         }
         let input_header_value = input.to_header_value()?;
         self.input = Option::from(input_header_value);
         Ok(())
     }
 
-    fn add_date_type(&mut self, date_type: String) -> Result<(), ParseError> {
+    fn add_date_type(&mut self, date_type: String) -> Result<(), ParsingError> {
         if self.date_type.is_some() {
-            return Err(ParseError::ValidationError(format!("error in to_date-method '{:?}'. 'date_type'-attribute multiple times provided", self))); }
+            return Err(ParsingError::ValidationError(format!("error in to_date-method '{:?}'. 'date_type'-attribute multiple times provided", self))); }
         self.date_type = Option::from(date_type);
         Ok(())
     }
-    fn is_consistent(&self) -> Result<(), ParseError> {
+    fn is_consistent(&self) -> Result<(), ParsingError> {
         if self.input.is_none() {
-            return Err(ParseError::ValidationError(format!("error in to_date-method '{:?}'. 'input'-attribute not provided", self)));
+            return Err(ParsingError::ValidationError(format!("error in to_date-method '{:?}'. 'input'-attribute not provided", self)));
         }
         if self.date_type.is_none() {
-            return Err(ParseError::ValidationError(format!("error in to_date-method '{:?}'. 'date_type'-attribute not provided", self)));
+            return Err(ParsingError::ValidationError(format!("error in to_date-method '{:?}'. 'date_type'-attribute not provided", self)));
         }
         Ok(())
     }
 }
 impl WrapperToDateMethod {
-    pub fn to_date_method(&self) -> Result<ToDateMethod, ParseError> {
+    pub fn to_date_method(&self) -> Result<ToDateMethod, ParsingError> {
         self.0.no_blocks()?;
         let mut transient_structure: TransientStructureToDateMethod = TransientStructureToDateMethod::new(self.0.get_output()?);
         for attribute in self.0.attributes() {
@@ -57,10 +57,10 @@ impl WrapperToDateMethod {
                     transient_structure.add_input(attribute.expr.to_owned())?;
                 }
                 "date_type" => {
-                    transient_structure.add_date_type(remove_useless_quotation_marks(attribute.expr.to_string()))?;
+                    transient_structure.add_date_type(attribute.expr.to_string_2()?)?;
                 }
                 _ => {
-                    return Err(ParseError::ValidationError(format!("found this unknown attribute '{:?}' in method '{:?}'.",attribute, transient_structure.output)));
+                    return Err(ParsingError::ValidationError(format!("found this unknown attribute '{:?}' in method '{:?}'.", attribute, transient_structure.output)));
                 }
             }
 
@@ -69,7 +69,7 @@ impl WrapperToDateMethod {
         return Ok(ToDateMethod::new(transient_structure)?)
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ToDateMethod{
     output: String,
     input: HeaderValue,
@@ -77,7 +77,7 @@ pub struct ToDateMethod{
 }
 
 impl ToDateMethod {
-    fn new(transient_structure: TransientStructureToDateMethod) -> Result<ToDateMethod, ParseError> {
+    fn new(transient_structure: TransientStructureToDateMethod) -> Result<ToDateMethod, ParsingError> {
         let date_type: DateType = DateType::date_type(transient_structure.date_type.unwrap())?;
         Ok(ToDateMethod{
             output: transient_structure.output,

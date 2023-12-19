@@ -1,17 +1,21 @@
 use std::any::Any;
 use std::collections::HashMap;
 use std::num::ParseIntError;
+use std::string::ToString;
 use hcl::{Block, Body, Expression};
-use crate::errors::ParseError;
+use crate::errors::ParsingError;
+use crate::to_2_string::To2String;
 use crate::transform_parse::domain::builders::transform_hcl::TransformHCLBuilder;
+use crate::transform_parse::domain::organized_by::OrganizedBy;
 use crate::transform_parse::domain::sheet_info::{SheetInfo, SheetInfoWrapper};
-use crate::transform_parse::domain::transform_type::{TransformName, TransformType, TransformXLSX};
+use crate::transform_parse::domain::transform_type::TransformType;
 
 pub struct TransientStructureTransformHCL {
     pub(crate) transform: Option<String>,
-    all_sheets: Option<bool>,
-    sheets: Vec<usize>,
-    worksheets: HashMap<usize, SheetInfo>,
+    pub(crate) all_sheets: Option<bool>,
+    pub(crate) sheets: Vec<usize>,
+    pub(crate) organized_bys: Vec<OrganizedBy>,
+    pub(crate) worksheets: HashMap<usize, SheetInfo>,
 }
 
 
@@ -21,12 +25,13 @@ impl TransientStructureTransformHCL {
             transform: None,
             all_sheets: None,
             sheets: vec![],
+            organized_bys: vec![],
             worksheets: Default::default(),
         }
     }
-    pub(crate) fn add_sheets(&mut self, sheet_expression: &Expression) -> Result<(), ParseError> {
+    pub(crate) fn add_sheets(&mut self, sheet_expression: &Expression) -> Result<(), ParsingError> {
         if self.all_sheets.is_some() {
-            return Err(ParseError::ValidationError(format!("only one declaration of 'sheets' allowed, second 'sheets' found with expression '{}'", sheet_expression)));
+            return Err(ParsingError::ValidationError(format!("only one declaration of 'sheets' allowed, second 'sheets' found with expression '{}'", sheet_expression)));
         }
         match sheet_expression {
             Expression::String(value) => {
@@ -34,7 +39,7 @@ impl TransientStructureTransformHCL {
                     self.all_sheets = Option::from(true);
                 }
                     _ => {
-                        return Err(ParseError::ValidationError(format!("expression of 'sheets' is not allowed: '{}'", sheet_expression)));
+                        return Err(ParsingError::ValidationError(format!("expression of 'sheets' is not allowed: '{}'", sheet_expression)));
                     }
                 }
             }
@@ -48,51 +53,52 @@ impl TransientStructureTransformHCL {
                             self.sheets.push(number_usize);
                         }
                         _ => {
-                            return Err(ParseError::ValidationError(format!("in 'sheets' array '{:?}' only numbers are allowed, but found: '{}'", vector, expr)));
+                            return Err(ParsingError::ValidationError(format!("in 'sheets' array '{:?}' only numbers are allowed, but found: '{}'", vector, expr)));
                         }
                     }
 
                 }
             }
             _ => {
-                return Err(ParseError::ValidationError(format!("the type of expression of 'sheets' is not valid: '{:?}', only String or Array allowed", sheet_expression)));
+                return Err(ParsingError::ValidationError(format!("the type of expression of 'sheets' is not valid: '{:?}', only String or Array allowed", sheet_expression)));
             }
         }
         Ok(())
     }
 
-    pub(crate) fn add_transform(&mut self, transform_expression: &Expression) -> Result<(), ParseError> {
+    pub(crate) fn add_transform(&mut self, transform_expression: &Expression) -> Result<(), ParsingError> {
         if self.all_sheets.is_some() {
-            return Err(ParseError::ValidationError(format!("only one declaration of 'transform' allowed, second 'transform' found with expression '{}'", transform_expression)));
+            return Err(ParsingError::ValidationError(format!("only one declaration of 'transform' allowed, second 'transform' found with expression '{}'", transform_expression)));
         }
-        self.transform = Option::from(transform_expression.to_string());
+        self.transform = Option::from(transform_expression.to_string_2()?);
         Ok(())
     }
-    pub(crate) fn add_sheet_info(&mut self, label: &str, body: &Body) -> Result<(), ParseError> {
+    pub(crate) fn add_sheet_info(&mut self, label: &str, body: &Body) -> Result<(), ParsingError> {
         let result: Result<usize, ParseIntError> =label.to_string().parse::<usize>();
         let sheet_nr = match result {
             Ok(value) => {value}
             Err(_) => {
-                return Err(ParseError::ValidationError(format!("couldn't parse '{:?}' to usize. This should be a valid number referring to a sheet.",label)));
+                return Err(ParsingError::ValidationError(format!("couldn't parse '{:?}' to usize. This should be a valid number referring to a sheet.", label)));
             }
         };
         let sheet_info: SheetInfo = SheetInfoWrapper(body.to_owned()).to_sheet_info()?;
         if self.worksheets.get(&sheet_nr).is_some() {
-            return Err(ParseError::ValidationError(format!("the same sheet number was provided multiple times: sheet-nr: {:?}", sheet_nr)));
+            return Err(ParsingError::ValidationError(format!("the same sheet number was provided multiple times: sheet-nr: {:?}", sheet_nr)));
         }
+        self.organized_bys.push(sheet_info.structured_by);
         self.worksheets.insert(sheet_nr, sheet_info);
         Ok(())
     }
-    pub(crate) fn is_complete(&self) -> Result<(), ParseError> {
+    pub(crate) fn is_complete(&self) -> Result<(), ParsingError> {
         //check if worksheet-info matches with "sheets"-number(which sheets were described vs which sheets should be checked)
         if self.sheets.is_empty() && self.all_sheets.is_none() {
-            return Err(ParseError::ValidationError(format!("'all_sheets'-attribute and 'sheets'-array aren't provided, one of them must be provided")));
+            return Err(ParsingError::ValidationError(format!("'all_sheets'-attribute and 'sheets'-array aren't provided, one of them must be provided")));
         }
         if !self.sheets.is_empty() && self.all_sheets.is_some() {
-            return Err(ParseError::ValidationError(format!("'all_sheets'-attribute and 'sheets'-array are provided, but only one of them should be provided")));
+            return Err(ParsingError::ValidationError(format!("'all_sheets'-attribute and 'sheets'-array are provided, but only one of them should be provided")));
         }
         if self.transform.is_none() {
-            return Err(ParseError::ValidationError(format!("'transform'-attribute and value wasn't provided")));
+            return Err(ParsingError::ValidationError(format!("'transform'-attribute and value wasn't provided")));
         }
 
         //todo check if transform = "xlsx" matches with statements in worksheet-info (in case TransformHCL could  be used for Filemarker, SQL etc. as well, in such cases we could need some additional statements)
@@ -104,15 +110,11 @@ impl TransientStructureTransformHCL {
 
 #[derive(Debug)]
 pub struct TransformHCL {
-    //TODO replace this with TransformType: either return CSV or XLSX - related worksheet
     pub transform_type: TransformType,
-    pub transform_name: TransformName
 }
 
-
-
 impl TryFrom<hcl::Body> for TransformHCL {
-    type Error = ParseError;
+    type Error = ParsingError;
     fn try_from(body: hcl::Body) -> Result<Self, Self::Error> {
         let mut transient_transform_hcl = TransientStructureTransformHCL::new();
 
@@ -126,7 +128,7 @@ impl TryFrom<hcl::Body> for TransformHCL {
                     transient_transform_hcl.add_transform(attribute.expr())?;
                 }
                 _ => {
-                    return Err(ParseError::ValidationError(format!("attribute '{}' with value '{}' not allowed", attribute.expr, attribute.key)));
+                    return Err(ParsingError::ValidationError(format!("attribute '{}' with value '{}' not allowed", attribute.expr, attribute.key)));
                 }
             }
         }
@@ -136,16 +138,16 @@ impl TryFrom<hcl::Body> for TransformHCL {
             match block.identifier.as_str() {
                 "sheet" => {
                     if block.labels.len() == 0 {
-                        return Err(ParseError::ValidationError(format!("assignments number- label is missing for 'assigments' : '{:?}'", body)));
+                        return Err(ParsingError::ValidationError(format!("assignments number- label is missing for 'assigments' : '{:?}'", body)));
                     }
                     if block.labels.len() > 1 {
-                        return Err(ParseError::ValidationError(format!("assignments should only have one label, cannot parse 'assignments' : '{:?}'", body)));
+                        return Err(ParsingError::ValidationError(format!("assignments should only have one label, cannot parse 'assignments' : '{:?}'", body)));
                     }
                     let label = block.labels.get(0).unwrap().as_str();
                     transient_transform_hcl.add_sheet_info(label, &block.body)?;
                 }
                 _ => {
-                    return Err(ParseError::ValidationError(format!("the identifier of this block is not allowed '{}'", block.identifier)));
+                    return Err(ParsingError::ValidationError(format!("the identifier of this block is not allowed '{}'", block.identifier)));
                 }
             }
         }
@@ -157,7 +159,7 @@ impl TryFrom<hcl::Body> for TransformHCL {
 
 #[cfg(test)]
 mod test {
-    use crate::errors::ParseError;
+    use crate::errors::ParsingError;
     use crate::transform_parse::domain::transform_hcl::TransformHCL;
 
     #[test]
@@ -202,7 +204,7 @@ mod test {
                 // replace DICT with DICTIONARY, once per line and don't look for words but parts of words(no whitespaces between)
 
         );
-        let result: Result<TransformHCL, ParseError> = body.try_into();
+        let result: Result<TransformHCL, ParsingError> = body.try_into();
         println!("{:?}", result);
         assert!(result.is_ok())
 
