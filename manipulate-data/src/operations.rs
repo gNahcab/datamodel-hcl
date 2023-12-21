@@ -3,27 +3,24 @@ use parse_data::errors::ParsingError;
 use parse_data::transform_parse::domain::transform_hcl::TransformHCL;
 use parse_data::transform_parse::domain::transform_type::TransformType;
 use crate::manipulation;
+use crate::manipulation::manipulate::{manipulate_csv_data, manipulate_xlsx_data};
 
 pub fn manipulate_data<P: AsRef<Path>>(data_path: P, data_model_hcl_path: P ,transform_hcl_path: P) -> Result<(), ParsingError> {
-    //todo: should return the manipulated dataframe as polars dataframe or somethin
+    //todo: should return the manipulated dataframe as polars dataframe or something
     let project_model = parse_data::operations::read_datamodel(data_model_hcl_path)?;
     let transform_hcl: parse_data::transform_parse::domain::transform_hcl::TransformHCL = parse_data::operations::read_transform_hcl(transform_hcl_path)?;
-    match transform_hcl.transform_type {
-
-                TransformType::XLSX(transform_xlsx) => {
-                    let dataframe = manipulation::manipulate::manipulate_xlsx_data(transform_xlsx, data_path);
-                }
-                TransformType::CSV(transform_csv) => {
-                    let dataframe = manipulation::manipulate::manipulate_csv_data(transform_csv, data_path);
-
-                }
-            }
-
+    let data_sheets = match transform_hcl.transform_type {
+        TransformType::XLSX(transform_xlsx) => {
+            manipulate_xlsx_data(transform_xlsx, data_path)?
+        }
+        TransformType::CSV(transform_csv) => {
+            manipulate_csv_data(transform_csv, data_path)?
+        }
+    };
     Ok(())
 }
 #[cfg(test)]
 mod test {
-    use crate::manipulation::manipulate::manipulate_xlsx_data;
     use crate::operations::manipulate_data;
 
     #[test]

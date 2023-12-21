@@ -20,7 +20,7 @@ impl AssignmentsWrapper {
 
 #[derive(Debug, Clone)]
 pub struct Assignments {
-    pub(crate) assignments_to_header_value: HashMap<String, HeaderValue>
+    pub assignments_to_header_value: HashMap<String, HeaderValue>
 }
 
 

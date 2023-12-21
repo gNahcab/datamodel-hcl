@@ -8,6 +8,7 @@ pub enum ParsingError {
     ParseInt(ParseIntError),
     ParseProjectModel(String),
     ValidationError(String),
+    XlsxParse(String),
 }
 
 

@@ -1,6 +1,6 @@
 use hcl::{Attribute, Block, body, Body, Identifier};
 use crate::errors::ParsingError;
-use crate::to_2_string::To2String;
+use crate::expression_trait::ExpressionTransform;
 use crate::transform_parse::domain::organized_by::OrganizedBy;
 use crate::transform_parse::domain::assignment::{Assignments, AssignmentsWrapper};
 use crate::transform_parse::domain::transformations::{Transformations, TransformationsWrapper};
@@ -10,6 +10,7 @@ pub struct SheetInfoWrapper (pub(crate) Body);
 #[derive(Debug)]
 struct TransientStructureSheetInfo {
     structured_by: Option<String>,
+    headers_exist: Option<bool>,
     resource: Option<String>,
     resource_row: Option<String>,
     assignments: Option<Assignments>,
@@ -33,8 +34,11 @@ impl SheetInfoWrapper {
                 "resource_row" => {
                     transient_structure.add_resource_row(attribute.expr.to_string_2()?)?;
                 }
+                "headers" => {
+                    transient_structure.add_headers_exist(attribute.expr.to_bool()?)?
+                }
                 _ => {
-                    return Err(ParsingError::ValidationError(format!("attribute with name '{:?}' not allowed in 'sheet'", attribute.key)));
+                    return Err(ParsingError::ValidationError(format!("attribute with name '{:?}' not allowed in a sheet", attribute.key)));
                 }
             }
         }
@@ -63,6 +67,7 @@ impl TransientStructureSheetInfo {
     fn new() -> TransientStructureSheetInfo {
         TransientStructureSheetInfo {
             structured_by: None,
+            headers_exist: None,
             resource: None,
             resource_row: None,
             assignments: None,
@@ -77,6 +82,13 @@ impl TransientStructureSheetInfo {
         Ok(())
     }
 
+    pub(crate) fn add_headers_exist(&mut self, headers_exist: bool) -> Result<(), ParsingError> {
+        if self.headers_exist.is_some() {
+            return Err(ParsingError::ValidationError(format!("only one declaration of 'headers_exist' allowed, second 'headers_exist' found in '{:?}'", self)));
+        }
+        self.headers_exist = Option::from(headers_exist);
+        Ok(())
+    }
     pub(crate) fn add_resource(&mut self, resource_string: String) -> Result<(), ParsingError> {
         if self.resource.is_some() {
             return Err(ParsingError::ValidationError(format!("error in sheet: found duplicate for 'resource' in: '{:?}'", self)));
@@ -112,6 +124,9 @@ impl TransientStructureSheetInfo {
         if self.structured_by.is_none() {
             return Err(ParsingError::ValidationError(format!("Sheet should contain 'structured_by'-attribute but it doesn't: '{:?}'", self)));
         }
+        if self.headers_exist.is_none() {
+            return Err(ParsingError::ValidationError(format!("Sheet should contain 'headers_exist'-attribute but it doesn't: '{:?}'", self)));
+        }
         if self.resource.is_none() && self.resource_row.is_none() {
             return Err(ParsingError::ValidationError(format!("Sheet should contain 'resource'-attribute or 'resource_row'-attribute but it doesn't: '{:?}'", self)));
         }
@@ -129,8 +144,9 @@ impl TransientStructureSheetInfo {
 #[derive(Debug, Clone)]
 pub struct SheetInfo {
     pub structured_by: OrganizedBy,
+    pub headers_exist: bool,
     pub(crate) resource: Option<String>,
-    pub(crate) assignments: Assignments,
+    pub assignments: Assignments,
     pub(crate) transformations: Option<Transformations>,
 }
 
@@ -139,6 +155,7 @@ impl SheetInfo {
         let structured_by: OrganizedBy = OrganizedBy::organized_by(transient_structure.structured_by.unwrap().to_string())?;
         Ok(SheetInfo{
             structured_by,
+            headers_exist: transient_structure.headers_exist.unwrap(),
             resource:transient_structure.resource,
             assignments: transient_structure.assignments.unwrap(),
             transformations: transient_structure.transformations,

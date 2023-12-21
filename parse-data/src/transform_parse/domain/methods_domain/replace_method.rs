@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use hcl::{Attribute, Expression};
 use hcl::ser::Block;
 use crate::errors::ParsingError;
-use crate::to_2_string::To2String;
+use crate::expression_trait::ExpressionTransform;
 use crate::transform_parse::domain::header_value::{HeaderMethods, HeaderValue};
 use crate::transform_parse::domain::methods_domain::behavior_type::BehaviorType;
 use crate::transform_parse::domain::methods_domain::target_type::TargetType;

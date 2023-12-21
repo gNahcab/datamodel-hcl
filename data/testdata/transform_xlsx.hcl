@@ -1,7 +1,8 @@
 transform = "xlsx"
-sheets = [1]
+sheets = "all"
 sheet "1" {
   structured_by = "column"
+  headers = true
   resource = "Person"
   assignments  {
     id = "ID"

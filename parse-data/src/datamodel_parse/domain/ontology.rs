@@ -1,6 +1,6 @@
 use hcl::{Attribute, Block, BlockLabel};
 use crate::errors::ParsingError;
-use crate::to_2_string::To2String;
+use crate::expression_trait::ExpressionTransform;
 
 #[derive(Debug, PartialEq)]
 pub struct Ontology {

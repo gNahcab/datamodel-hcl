@@ -4,7 +4,7 @@ use std::num::ParseIntError;
 use std::string::ToString;
 use hcl::{Block, Body, Expression};
 use crate::errors::ParsingError;
-use crate::to_2_string::To2String;
+use crate::expression_trait::ExpressionTransform;
 use crate::transform_parse::domain::builders::transform_hcl::TransformHCLBuilder;
 use crate::transform_parse::domain::organized_by::OrganizedBy;
 use crate::transform_parse::domain::sheet_info::{SheetInfo, SheetInfoWrapper};
@@ -26,6 +26,7 @@ impl TransientStructureTransformHCL {
             all_sheets: None,
             sheets: vec![],
             organized_bys: vec![],
+            //todo: worksheets to vec, number of sheet: as property of sheet-info
             worksheets: Default::default(),
         }
     }
@@ -98,7 +99,7 @@ impl TransientStructureTransformHCL {
             return Err(ParsingError::ValidationError(format!("'all_sheets'-attribute and 'sheets'-array are provided, but only one of them should be provided")));
         }
         if self.transform.is_none() {
-            return Err(ParsingError::ValidationError(format!("'transform'-attribute and value wasn't provided")));
+            return Err(ParsingError::ValidationError(format!("'transform'-attribute and value weren't provided")));
         }
 
         //todo check if transform = "xlsx" matches with statements in worksheet-info (in case TransformHCL could  be used for Filemarker, SQL etc. as well, in such cases we could need some additional statements)
@@ -169,6 +170,7 @@ mod test {
             sheets = [1]
             sheet "1" {
                 structured_by = "row"
+                headers = "true"
                 resource = "Person" //TODO wie wenn Ressource nur in einer Spalte oder Zeile festgeschrieben ist und für jede Spalte bzw. Zeile  ändert?
             assignments  {
                 id = "ID" // String = Header, wenn vorhanden

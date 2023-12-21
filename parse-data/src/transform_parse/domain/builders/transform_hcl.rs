@@ -37,6 +37,7 @@ impl TransformHCLBuilder {
     }
     fn is_xlsx_consistent(&self) -> Result<(), ParsingError>{
         // check numbers of xlsx and sheet_numbers fit (even if all_sheets=true)
+        // check that if headers_exist is false no assignments to a header were made
         // check worksheets in between are correct?
         // check csv-transform or xlsx-transform is correct
         Ok(())
@@ -58,7 +59,7 @@ impl TransformHCLBuilder {
                self.is_xlsx_consistent()?;
 
                let worksheets: Vec<SheetInfo> = self.worksheets.iter().map(|(sheet_nr, sheet_info)|sheet_info.to_owned()).collect();
-               Ok(TransformHCL { transform_type: TransformType::XLSX(TransformXLSX { all_sheets: self.all_sheets, sheet_numbers: self.sheets.to_owned(), organized_bys: self.organized_bys.to_owned() , worksheets: worksheets})})
+               Ok(TransformHCL { transform_type: TransformType::XLSX(TransformXLSX { all_sheets: self.all_sheets, sheet_numbers: self.sheets.to_owned(), organized_bys: self.organized_bys.to_owned(), worksheets: worksheets})})
             }
             _ => {
                 Err(ParsingError::ValidationError(format!("cannot parse 'transform'-expression: '{:?}'. Only 'xslx' and 'csv' are valid", self.transform)))

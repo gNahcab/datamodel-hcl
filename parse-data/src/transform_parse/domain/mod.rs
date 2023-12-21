@@ -1,4 +1,4 @@
-mod sheet_info;
+pub mod sheet_info;
 mod assignment;
 pub mod transform_hcl;
 mod transformations;
