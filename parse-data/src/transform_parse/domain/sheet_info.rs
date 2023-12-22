@@ -1,18 +1,21 @@
-use hcl::{Attribute, Block, body, Body, Identifier};
+use std::num::ParseIntError;
+use hcl::{Attribute, Block, body, Body, Expression, Identifier};
 use crate::errors::ParsingError;
 use crate::expression_trait::ExpressionTransform;
 use crate::transform_parse::domain::organized_by::OrganizedBy;
 use crate::transform_parse::domain::assignment::{Assignments, AssignmentsWrapper};
+use crate::transform_parse::domain::header_value::{HeaderValue, U8implementation};
 use crate::transform_parse::domain::transformations::{Transformations, TransformationsWrapper};
 
 #[derive(Debug)]
-pub struct SheetInfoWrapper (pub(crate) Body);
+pub struct SheetInfoWrapper (pub(crate) Block);
 #[derive(Debug)]
 struct TransientStructureSheetInfo {
+    sheet_nr: usize,
     structured_by: Option<String>,
     headers_exist: Option<bool>,
     resource: Option<String>,
-    resource_row: Option<String>,
+    resource_row: Option<HeaderValue>,
     assignments: Option<Assignments>,
     transformations: Option<Transformations>,
 }
@@ -20,9 +23,17 @@ struct TransientStructureSheetInfo {
 
 impl SheetInfoWrapper {
     pub fn to_sheet_info(&self) -> Result<SheetInfo, ParsingError> {
-        let attributes: Vec<&Attribute> = self.0.attributes().collect();
-        let blocks: Vec<&Block> = self.0.blocks().collect();
-        let mut transient_structure = TransientStructureSheetInfo::new();
+        let label = self.0.labels.get(0).unwrap().as_str();
+        let result: Result<usize, ParseIntError> =label.to_string().parse::<usize>();
+        let sheet_nr = match result {
+            Ok(value) => {value}
+            Err(_) => {
+                return Err(ParsingError::ValidationError(format!("couldn't parse '{:?}' to usize. This should be a valid number referring to a sheet.", label)));
+            }
+        };
+        let mut transient_structure = TransientStructureSheetInfo::new(sheet_nr);
+        let attributes: Vec<&Attribute> = self.0.body.attributes().collect();
+        let blocks: Vec<&Block> = self.0.body.blocks().collect();
         for attribute in attributes {
             match attribute.key.as_str() {
                 "structured_by" => {
@@ -32,7 +43,7 @@ impl SheetInfoWrapper {
                     transient_structure.add_resource(attribute.expr.to_string_2()?)?;
                 }
                 "resource_row" => {
-                    transient_structure.add_resource_row(attribute.expr.to_string_2()?)?;
+                    transient_structure.add_resource_row(&attribute.expr)?;
                 }
                 "headers" => {
                     transient_structure.add_headers_exist(attribute.expr.to_bool()?)?
@@ -64,8 +75,9 @@ impl SheetInfoWrapper {
 }
 
 impl TransientStructureSheetInfo {
-    fn new() -> TransientStructureSheetInfo {
+    fn new(sheet_nr: usize) -> TransientStructureSheetInfo {
         TransientStructureSheetInfo {
+            sheet_nr,
             structured_by: None,
             headers_exist: None,
             resource: None,
@@ -74,11 +86,19 @@ impl TransientStructureSheetInfo {
             transformations: None,
         }
     }
-    pub(crate) fn add_resource_row(&mut self, resource_row_string: String) -> Result<(), ParsingError> {
+    pub(crate) fn add_resource_row(&mut self, resource_row: &Expression) -> Result<(), ParsingError> {
         if self.resource_row.is_some() {
             return Err(ParsingError::ValidationError(format!("error in sheet: found duplicate for 'resource_row' in: '{:?}'", self)));
         }
-        self.resource_row = Option::from(resource_row_string);
+        match resource_row {
+            Expression::Number(number) => {
+                self.resource_row = Option::from(HeaderValue::Number(number.as_u8()?));
+            }
+            Expression::String(value) => {
+               self.resource_row = Option::from(HeaderValue::Name(value.to_owned()));
+            }
+            _ => return Err(ParsingError::ValidationError(format!("resource_row: '{:?}' has the wrong format (only String or Number allowed) in sheet-nr '{:?}'", resource_row, self.sheet_nr)))
+        };
         Ok(())
     }
 
@@ -143,20 +163,24 @@ impl TransientStructureSheetInfo {
 
 #[derive(Debug, Clone)]
 pub struct SheetInfo {
+    pub sheet_nr: usize,
     pub structured_by: OrganizedBy,
     pub headers_exist: bool,
-    pub(crate) resource: Option<String>,
+    pub resource: Option<String>,
+    pub resource_row: Option<HeaderValue>,
     pub assignments: Assignments,
-    pub(crate) transformations: Option<Transformations>,
+    pub transformations: Option<Transformations>,
 }
 
 impl SheetInfo {
     fn new(transient_structure: TransientStructureSheetInfo) -> Result<SheetInfo, ParsingError> {
         let structured_by: OrganizedBy = OrganizedBy::organized_by(transient_structure.structured_by.unwrap().to_string())?;
         Ok(SheetInfo{
+            sheet_nr: transient_structure.sheet_nr,
             structured_by,
             headers_exist: transient_structure.headers_exist.unwrap(),
             resource:transient_structure.resource,
+            resource_row: transient_structure.resource_row,
             assignments: transient_structure.assignments.unwrap(),
             transformations: transient_structure.transformations,
         })

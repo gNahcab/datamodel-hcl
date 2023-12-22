@@ -15,7 +15,7 @@ pub struct TransientStructureTransformHCL {
     pub(crate) all_sheets: Option<bool>,
     pub(crate) sheets: Vec<usize>,
     pub(crate) organized_bys: Vec<OrganizedBy>,
-    pub(crate) worksheets: HashMap<usize, SheetInfo>,
+    pub(crate) worksheets: Vec<SheetInfo>,
 }
 
 
@@ -26,8 +26,7 @@ impl TransientStructureTransformHCL {
             all_sheets: None,
             sheets: vec![],
             organized_bys: vec![],
-            //todo: worksheets to vec, number of sheet: as property of sheet-info
-            worksheets: Default::default(),
+            worksheets: vec![],
         }
     }
     pub(crate) fn add_sheets(&mut self, sheet_expression: &Expression) -> Result<(), ParsingError> {
@@ -74,20 +73,10 @@ impl TransientStructureTransformHCL {
         self.transform = Option::from(transform_expression.to_string_2()?);
         Ok(())
     }
-    pub(crate) fn add_sheet_info(&mut self, label: &str, body: &Body) -> Result<(), ParsingError> {
-        let result: Result<usize, ParseIntError> =label.to_string().parse::<usize>();
-        let sheet_nr = match result {
-            Ok(value) => {value}
-            Err(_) => {
-                return Err(ParsingError::ValidationError(format!("couldn't parse '{:?}' to usize. This should be a valid number referring to a sheet.", label)));
-            }
-        };
-        let sheet_info: SheetInfo = SheetInfoWrapper(body.to_owned()).to_sheet_info()?;
-        if self.worksheets.get(&sheet_nr).is_some() {
-            return Err(ParsingError::ValidationError(format!("the same sheet number was provided multiple times: sheet-nr: {:?}", sheet_nr)));
-        }
+    pub(crate) fn add_sheet_info(&mut self, block: &Block) -> Result<(), ParsingError> {
+        let sheet_info: SheetInfo = SheetInfoWrapper(block.to_owned()).to_sheet_info()?;
         self.organized_bys.push(sheet_info.structured_by);
-        self.worksheets.insert(sheet_nr, sheet_info);
+        self.worksheets.push( sheet_info);
         Ok(())
     }
     pub(crate) fn is_complete(&self) -> Result<(), ParsingError> {
@@ -144,8 +133,7 @@ impl TryFrom<hcl::Body> for TransformHCL {
                     if block.labels.len() > 1 {
                         return Err(ParsingError::ValidationError(format!("assignments should only have one label, cannot parse 'assignments' : '{:?}'", body)));
                     }
-                    let label = block.labels.get(0).unwrap().as_str();
-                    transient_transform_hcl.add_sheet_info(label, &block.body)?;
+                    transient_transform_hcl.add_sheet_info(&block)?;
                 }
                 _ => {
                     return Err(ParsingError::ValidationError(format!("the identifier of this block is not allowed '{}'", block.identifier)));
@@ -153,7 +141,7 @@ impl TryFrom<hcl::Body> for TransformHCL {
             }
         }
         transient_transform_hcl.is_complete()?;
-        let transform_hcl_builder : TransformHCLBuilder = TransformHCLBuilder::new(transient_transform_hcl);
+        let mut transform_hcl_builder : TransformHCLBuilder = TransformHCLBuilder::new(transient_transform_hcl);
         transform_hcl_builder.build()
     }
 }
@@ -167,10 +155,44 @@ mod test {
     fn test_read_simple_transform_hcl() {
         let body = hcl::body!(
             transform = "xlsx"
-            sheets = [1]
+            sheets = [1,2]
+            sheet "2" {
+                structured_by = "column"
+                resource_row = 22
+                headers = false
+            assignments  {
+                id = 5 // String = Header, wenn vorhanden
+                not_lowered = 1
+                hasName = 2
+                hasIdentifier = 3
+                hasChildren = 4
+                hasExternalLink = 5
+                }
+
+                transformations {
+                    lower "lower" {
+                        input = 5
+                    }
+                     combine "label"{
+                            input = [0, 6]
+                            separator = "_"
+                            prefix = "BIZ_"
+                            suffix = "_ZIP"
+                    }
+                 replace "hasIdentifier" {
+                        input = 1
+                        replace = ["DICT", "DICTIONARY"]
+                        condition {
+                         behavior = "lazy"
+                            target = "part"
+                        }
+                    }
+
+                }
+            }
             sheet "1" {
                 structured_by = "row"
-                headers = "true"
+                headers = true
                 resource = "Person" //TODO wie wenn Ressource nur in einer Spalte oder Zeile festgeschrieben ist und für jede Spalte bzw. Zeile  ändert?
             assignments  {
                 id = "ID" // String = Header, wenn vorhanden
