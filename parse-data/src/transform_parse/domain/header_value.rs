@@ -7,6 +7,20 @@ pub enum HeaderValue {
     Number(u8)
 }
 
+impl HeaderValue {
+    pub(crate) fn is_equal(&self, output: &String) -> bool {
+        // return true if headerValue is equal to a string-value
+        return match self {
+            HeaderValue::Name(name) => {
+                name == output
+            }
+            HeaderValue::Number(_) => {
+                false
+            }
+        }
+    }
+}
+
 
 pub trait HeaderMethods {
     fn to_header_value(&self) -> Result<HeaderValue, ParsingError>;

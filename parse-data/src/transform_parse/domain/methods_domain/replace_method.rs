@@ -125,17 +125,21 @@ impl WrapperReplaceMethod{
 
         transient_structure.is_consistent()?;
 
-        Ok(ReplaceMethod::new(transient_structure)?)
-
+        let replace_method = ReplaceMethod::new(transient_structure)?;
+        replace_method.is_correct()?;
+        Ok(replace_method)
     }
 }
 #[derive(Debug, Clone)]
 pub struct ReplaceMethod {
-    output: String,
-    input: HeaderValue,
-    replace: Vec<String>,
-    behavior: BehaviorType,
-    target: TargetType,
+    pub output: String,
+    pub input: HeaderValue,
+    pub replace: Vec<String>,
+    pub behavior: BehaviorType,
+    pub target: TargetType,
+}
+
+impl ReplaceMethod {
 }
 
 impl ReplaceMethod {
@@ -151,6 +155,12 @@ impl ReplaceMethod {
             behavior: behavior_type,
             target: target_type,
         })
+    }
+    pub(crate) fn is_correct(&self) -> Result<(), ParsingError> {
+        if self.input.is_equal(&self.output) {
+            return Err(ParsingError::ValidationError(format!("method has the same in- and output-String, which is forbidden: '{:?}'", self.input)));
+        }
+        Ok(())
     }
 }
 

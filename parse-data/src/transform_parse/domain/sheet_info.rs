@@ -70,6 +70,7 @@ impl SheetInfoWrapper {
         }
         transient_structure.is_complete()?;
         let sheet_info = SheetInfo::new(transient_structure)?;
+        sheet_info.is_consistent()?;
         Ok(sheet_info)
         }
 }
@@ -184,6 +185,11 @@ impl SheetInfo {
             assignments: transient_structure.assignments.unwrap(),
             transformations: transient_structure.transformations,
         })
+    }
+
+    fn is_consistent(&self) -> Result<(), ParsingError> {
+        // check transformation and assignments go along
+        Ok(())
     }
 }
 

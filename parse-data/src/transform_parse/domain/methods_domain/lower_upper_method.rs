@@ -48,11 +48,15 @@ impl TransientStructureLowerUpperMethod {
 impl WrapperLowerUpperMethod {
     pub fn to_lower_method(&self) -> Result<LowerMethod, ParsingError> {
         let transient_structure = get_transient_structure(&self)?;
-        Ok(LowerMethod{ output: transient_structure.output, input: transient_structure.input.unwrap()})
+        let lower_method = LowerMethod::new(transient_structure.output, transient_structure.input.unwrap());
+        lower_method.is_correct()?;
+        Ok(lower_method)
     }
     pub fn to_upper_method(&self) -> Result<UpperMethod, ParsingError> {
         let transient_structure = get_transient_structure(&self)?;
-        Ok(UpperMethod{ output: transient_structure.output, input: transient_structure.input.unwrap()})
+        let upper_method = UpperMethod::new(transient_structure.output, transient_structure.input.unwrap());
+        upper_method.is_correct()?;
+        Ok(upper_method)
     }
 }
 
@@ -74,15 +78,37 @@ fn get_transient_structure(wrapper: &WrapperLowerUpperMethod) -> Result<Transien
 }
 #[derive(Debug, Clone)]
 pub struct LowerMethod{
-output: String,
-    input: HeaderValue,
+pub output: String,
+    pub input: HeaderValue,
+}
+
+
+impl LowerMethod {
+    fn new(output: String, input: HeaderValue) -> LowerMethod {
+        LowerMethod{ output, input }
+    }
+    pub(crate) fn is_correct(&self) -> Result<(), ParsingError> {
+        Ok(())
+    }
 }
 #[derive(Debug, Clone)]
 pub struct UpperMethod{
-    output: String,
-    input: HeaderValue,
+    pub output: String,
+    pub input: HeaderValue,
 }
 
+
+impl UpperMethod {
+    fn new(output: String, input: HeaderValue) -> UpperMethod {
+        UpperMethod{ output, input }
+    }
+    pub(crate) fn is_correct(&self) -> Result<(), ParsingError> {
+        if self.input.is_equal(&self.output) {
+            return Err(ParsingError::ValidationError(format!("method has the same in- and output-String, which is forbidden: '{:?}'", self.input)));
+        }
+        Ok(())
+    }
+}
 #[cfg(test)]
 mod test {
     use crate::transform_parse::domain::methods_domain::lower_upper_method::WrapperLowerUpperMethod;
@@ -95,12 +121,12 @@ mod test {
        });
         let result = WrapperLowerUpperMethod(block).to_lower_method();
         assert!(result.is_ok());
+    }
     #[test]
     fn test_upper_method() {
         let block = hcl::block!(upper "upper"{
-        input = 2
+        input = "upper"
    });
         let result = WrapperLowerUpperMethod(block).to_upper_method();
         assert!(result.is_ok());
     }}
-}

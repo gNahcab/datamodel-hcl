@@ -66,15 +66,18 @@ impl WrapperToDateMethod {
 
         }
         transient_structure.is_consistent()?;
-        return Ok(ToDateMethod::new(transient_structure)?)
+        let to_date_method = ToDateMethod::new(transient_structure)?;
+        to_date_method.is_correct()?;
+        Ok(to_date_method)
     }
 }
 #[derive(Debug, Clone)]
 pub struct ToDateMethod{
-    output: String,
-    input: HeaderValue,
-    date_type: DateType,
+    pub output: String,
+    pub input: HeaderValue,
+    pub date_type: DateType,
 }
+
 
 impl ToDateMethod {
     fn new(transient_structure: TransientStructureToDateMethod) -> Result<ToDateMethod, ParsingError> {
@@ -84,6 +87,12 @@ impl ToDateMethod {
             input: transient_structure.input.unwrap(),
             date_type,
         })
+    }
+    pub(crate) fn is_correct(&self) -> Result<(), ParsingError> {
+        if self.input.is_equal(&self.output) {
+            return Err(ParsingError::ValidationError(format!("method has the same in- and output-String, which is forbidden: '{:?}'", self.input)));
+        }
+        Ok(())
     }
 }
 #[cfg(test)]

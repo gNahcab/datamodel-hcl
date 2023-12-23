@@ -104,25 +104,44 @@ impl WrapperCombineMethod {
 
         }
         transient_structure.is_consistent()?;
-
-        Ok(CombineMethod{
-            input: transient_structure.input.unwrap(),
-            output: transient_structure.output,
-            separator: transient_structure.separator,
-            prefix: transient_structure.prefix,
-            suffix: transient_structure.suffix,
-        })
-
+        let combine_method = CombineMethod::new(transient_structure);
+        combine_method.is_correct()?;
+        Ok(combine_method)
     }
 }
 #[derive(Debug, Clone)]
 pub struct CombineMethod{
-    input: Vec<HeaderValue>,
-    output: String,
-    separator: Option<String>,
-    prefix: Option<String>,
-    suffix: Option<String>,
+    pub input: Vec<HeaderValue>,
+    pub output: String,
+    pub separator: Option<String>,
+    pub prefix: Option<String>,
+    pub suffix: Option<String>,
 }
+
+impl CombineMethod {
+}
+
+impl CombineMethod {
+    fn new(transient_structure: TransientStructureCombineMethod) -> CombineMethod {
+        CombineMethod {
+        input: transient_structure.input.unwrap(),
+        output: transient_structure.output,
+        separator: transient_structure.separator,
+        prefix: transient_structure.prefix,
+        suffix: transient_structure.suffix,
+        }
+    }
+    pub(crate) fn is_correct(&self) -> Result<(), ParsingError> {
+        let identical_input: Vec<&HeaderValue> = self.input.iter().filter(|value|value.is_equal(&self.output)).collect();
+        if identical_input.len() != 0 {
+            return Err(ParsingError::ValidationError(format!("at least one input-String is identical with the output-String, which is forbidden: '{:?}'", self.input)));
+        }
+
+        Ok(())
+
+    }
+}
+
 #[cfg(test)]
 mod test {
     use hcl::block;

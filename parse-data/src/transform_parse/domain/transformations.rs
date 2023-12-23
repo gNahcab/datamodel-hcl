@@ -1,5 +1,6 @@
 use hcl::{Attribute, Block};
 use crate::errors::ParsingError;
+use crate::transform_parse::domain::header_value::HeaderValue;
 use crate::transform_parse::domain::methods_domain::combine_method::{CombineMethod, WrapperCombineMethod};
 use crate::transform_parse::domain::methods_domain::lower_upper_method::{LowerMethod, UpperMethod, WrapperLowerUpperMethod};
 use crate::transform_parse::domain::methods_domain::replace_method::{ReplaceMethod, WrapperReplaceMethod};
@@ -9,11 +10,14 @@ use crate::transform_parse::domain::methods_domain::to_date_method::{ToDateMetho
 pub struct TransformationsWrapper (pub(crate) Block);
 #[derive(Debug, Clone)]
 pub struct Transformations{
-    lower_methods:Vec<LowerMethod>,
-    upper_methods:Vec<UpperMethod>,
-    combine_methods:Vec<CombineMethod>,
-    replace_methods:Vec<ReplaceMethod>,
-    to_date_methods:Vec<ToDateMethod>,
+    pub lower_methods:Vec<LowerMethod>,
+    pub upper_methods:Vec<UpperMethod>,
+    pub combine_methods:Vec<CombineMethod>,
+    pub replace_methods:Vec<ReplaceMethod>,
+    pub to_date_methods:Vec<ToDateMethod>,
+}
+
+impl Transformations {
 }
 
 impl Transformations {
@@ -41,7 +45,47 @@ impl Transformations {
     pub(crate) fn add_to_date_method(&mut self, to_date_method: ToDateMethod) {
         self.to_date_methods.push(to_date_method);
     }
+    pub(crate) fn output_values(&self) -> Vec<&String> {
+        let mut vec:Vec<&String> = vec![];
+        vec.extend(
+            self.lower_methods.iter().map(|lower|&lower.output).collect::<Vec<&String>>(),
+        );
+        vec.extend(
+            self.upper_methods.iter().map(|upper|&upper.output).collect::<Vec<&String>>(),
+        );
+        vec.extend(
+            self.combine_methods.iter().map(|combine|&combine.output).collect::<Vec<&String>>(),
+        );
+        vec.extend(
+            self.replace_methods.iter().map(|replace|&replace.output).collect::<Vec<&String>>(),
+        );
+        vec.extend(
+            self.to_date_methods.iter().map(|to_date|&to_date.output).collect::<Vec<&String>>(),
+        );
+        vec
 
+    }
+
+    pub(crate) fn input_values(&self) -> Vec<&HeaderValue> {
+        let mut vec:Vec<&HeaderValue> = vec![];
+        vec.extend(
+            self.lower_methods.iter().map(|lower|&lower.input).collect::<Vec<&HeaderValue>>(),
+        );
+        vec.extend(
+            self.upper_methods.iter().map(|upper|&upper.input).collect::<Vec<&HeaderValue>>(),
+        );
+        vec.extend(
+         self.combine_methods.iter().map(|combine|&combine.input).into_iter().flatten().collect::<Vec<&HeaderValue>>()
+        );
+        vec.extend(
+            self.replace_methods.iter().map(|replace|&replace.input).collect::<Vec<&HeaderValue>>(),
+        );
+        vec.extend(
+            self.to_date_methods.iter().map(|to_date|&to_date.input).collect::<Vec<&HeaderValue>>(),
+        );
+        vec
+
+    }
 }
 impl TransformationsWrapper {
     pub fn to_transformations(&self) -> Result<Transformations, ParsingError> {
