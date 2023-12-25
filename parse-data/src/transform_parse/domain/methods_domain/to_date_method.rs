@@ -67,7 +67,6 @@ impl WrapperToDateMethod {
         }
         transient_structure.is_consistent()?;
         let to_date_method = ToDateMethod::new(transient_structure)?;
-        to_date_method.is_correct()?;
         Ok(to_date_method)
     }
 }

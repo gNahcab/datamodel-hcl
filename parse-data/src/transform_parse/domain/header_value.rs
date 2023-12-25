@@ -1,7 +1,7 @@
 use hcl::Expression;
 use crate::errors::ParsingError;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum HeaderValue {
     Name(String),
     Number(u8)

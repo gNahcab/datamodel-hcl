@@ -6,3 +6,4 @@ mod wrapper_trait;
 pub mod target_type;
 pub mod behavior_type;
 pub mod date_type;
+pub mod method;

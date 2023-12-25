@@ -126,7 +126,6 @@ impl WrapperReplaceMethod{
         transient_structure.is_consistent()?;
 
         let replace_method = ReplaceMethod::new(transient_structure)?;
-        replace_method.is_correct()?;
         Ok(replace_method)
     }
 }

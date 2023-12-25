@@ -105,7 +105,6 @@ impl WrapperCombineMethod {
         }
         transient_structure.is_consistent()?;
         let combine_method = CombineMethod::new(transient_structure);
-        combine_method.is_correct()?;
         Ok(combine_method)
     }
 }

@@ -1,21 +1,23 @@
 use parse_data::errors::ParsingError;
+use parse_data::transform_parse::domain::methods_domain::method::Method;
 use parse_data::transform_parse::domain::sheet_info::SheetInfo;
 use parse_data::transform_parse::domain::transform_type::TransformXLSX;
 use parse_data::transform_parse::domain::transformations::Transformations;
-use parse_data::xlsx_parse::parsed_data_sheet::ParsedDataSheet;
+use parse_data::xlsx_parse::data_sheet::DataSheet;
+use crate::manipulation::manipulated_data_sheet;
+use crate::manipulation::manipulated_data_sheet::{ManipulatedDataSheet, ManipulatedDataSheetWrapper};
 
 
-pub fn check_consistency(data_sheets: &Vec<ParsedDataSheet>, transform_xlsx: &TransformXLSX) -> Result<(), ParsingError> {
+pub fn check_consistency(data_sheets: &Vec<DataSheet>, transform_xlsx: &TransformXLSX) -> Result<(), ParsingError> {
     for (i, data_sheet) in data_sheets.iter().enumerate() {
         let sheet_info = transform_xlsx.worksheets.get(i).unwrap();
         data_sheet.check_assignments_from_sheet_info(sheet_info)?;
         data_sheet.check_transform_form_sheet_info(sheet_info)?;
-        println!("1");
     }
     Ok(())
 }
-pub fn manipulate_xlsx_data_sheets(data_sheets: Vec<ParsedDataSheet>, transform_xlsx: &TransformXLSX) -> Result<(), ParsingError> {
-    let mut new_data_sheets: Vec<ParsedDataSheet> = vec![];
+pub fn manipulate_xlsx_data_sheets(data_sheets: Vec<DataSheet>, transform_xlsx: &TransformXLSX) -> Result<(), ParsingError> {
+    let mut new_data_sheets: Vec<DataSheet> = vec![];
     for (i, data_sheet) in data_sheets.iter().enumerate() {
         let sheet_info: &SheetInfo = transform_xlsx.worksheets.get(i).unwrap();
         if sheet_info.transformations.is_none() {
@@ -30,16 +32,20 @@ pub fn manipulate_xlsx_data_sheets(data_sheets: Vec<ParsedDataSheet>, transform_
     Ok(())
 }
 
-fn transform_data_sheet(data_sheet: &ParsedDataSheet, transformations: &Transformations) -> Result<ParsedDataSheet, ParsingError> {
-    println!("transformations:: {:?}", transformations);
-
-
-    Ok(ParsedDataSheet::new())
+fn transform_data_sheet(data_sheet: &DataSheet, transformations: &Transformations) -> Result<DataSheet, ParsingError> {
+    let manipulated_data_sheet = ManipulatedDataSheetWrapper(data_sheet.copy(), transformations.to_owned()).to_manipulated_data_sheet()?;
+    Ok(DataSheet{
+        tabular_data: vec![],
+        height: 0,
+        width: 0,
+        headers: vec![],
+        assignments: Default::default(),
+    })
 }
 
-pub(crate) fn add_assignments_xlsx(data_sheets: Vec<ParsedDataSheet>, transform_xlsx: &TransformXLSX) -> Result<Vec<ParsedDataSheet>, ParsingError> {
+pub(crate) fn add_assignments_xlsx(data_sheets: Vec<DataSheet>, transform_xlsx: &TransformXLSX) -> Result<Vec<DataSheet>, ParsingError> {
     let mut i = 0;
-    let mut new_data_sheets: Vec<ParsedDataSheet> = vec![];
+    let mut new_data_sheets: Vec<DataSheet> = vec![];
     for mut data_sheet in data_sheets {
        let sheet_info =  transform_xlsx.worksheets.get((i)).unwrap();
         i+= 1;
@@ -62,16 +68,20 @@ mod test {
     use parse_data::transform_parse::domain::sheet_info::SheetInfo;
     use parse_data::transform_parse::domain::transform_type::TransformXLSX;
     use parse_data::transform_parse::domain::transformations::Transformations;
-    use parse_data::xlsx_parse::parsed_data_sheet::ParsedDataSheet;
+    use parse_data::xlsx_parse::data_sheet::DataSheet;
     use crate::manipulation::xlsx_data_sheet::{add_assignments_xlsx, manipulate_xlsx_data_sheets, transform_data_sheet};
 
     #[test]
     fn test_check_transform() {
-        let mut data_sheet: ParsedDataSheet = ParsedDataSheet::new();
-        data_sheet.add_height(5);
-        data_sheet.add_width(4);
+        let mut data_sheet: DataSheet = DataSheet{
+            tabular_data: vec![],
+            height: 5,
+            width: 4,
+            headers: vec![],
+            assignments: Default::default(),
+        };
         let row:Vec<String> = vec!["names_column".to_string(), "values_column".to_string(), "links_column".to_string(), "all_ids".to_string()];
-        data_sheet.headers = Option::from(row);
+        data_sheet.headers = row;
         let row:Vec<String> = vec!["a".to_string(), "b".to_string(), "c".to_string(), "d".to_string()];
         data_sheet.tabular_data.push(row);
         let row:Vec<String> = vec!["aa".to_string(), "bb".to_string(), "cc".to_string(), "dd".to_string()];
@@ -128,12 +138,16 @@ mod test {
         assert!(result.is_ok());
     }
     #[test]
-    fn test_add_transform() {
-        let mut data_sheet: ParsedDataSheet = ParsedDataSheet::new();
-        data_sheet.add_height(5);
-        data_sheet.add_width(4);
+    fn test_perform_transform() {
+        let mut data_sheet: DataSheet = DataSheet{
+            tabular_data: vec![],
+            height: 5,
+            width: 4,
+            headers: vec![],
+            assignments: Default::default(),
+        };
         let row:Vec<String> = vec!["names_column".to_string(), "values_column".to_string(), "links_column".to_string(), "all_ids".to_string()];
-        data_sheet.headers = Option::from(row);
+        data_sheet.headers = row;
         let row:Vec<String> = vec!["a".to_string(), "b".to_string(), "c".to_string(), "d".to_string()];
         data_sheet.tabular_data.push(row);
         let row:Vec<String> = vec!["aa".to_string(), "bb".to_string(), "cc".to_string(), "dd".to_string()];
@@ -181,9 +195,13 @@ mod test {
     }
     #[test]
     fn test_check_assignments_xlsx_numbers() {
-        let mut data_sheet: ParsedDataSheet = ParsedDataSheet::new();
-        data_sheet.add_height(5);
-        data_sheet.add_width(4);
+        let mut data_sheet: DataSheet = DataSheet{
+            tabular_data: vec![],
+            height: 5,
+            width: 4,
+            headers: vec![],
+            assignments: Default::default(),
+        };
         let row:Vec<String> = vec!["a".to_string(), "b".to_string(), "c".to_string(), "d".to_string()];
         data_sheet.tabular_data.push(row);
         let row:Vec<String> = vec!["aa".to_string(), "bb".to_string(), "cc".to_string(), "dd".to_string()];
@@ -217,11 +235,15 @@ mod test {
     }
     #[test]
     fn test_check_assignments_xlsx_headers() {
-        let mut data_sheet: ParsedDataSheet = ParsedDataSheet::new();
-        data_sheet.add_height(5);
-        data_sheet.add_width(4);
+        let mut data_sheet: DataSheet = DataSheet{
+            tabular_data: vec![],
+            height: 5,
+            width: 4,
+            headers: vec![],
+            assignments: Default::default(),
+        };
         let row:Vec<String> = vec!["names_column".to_string(), "values_column".to_string(), "links_column".to_string(), "all_ids".to_string()];
-        data_sheet.headers = Option::from(row);
+        data_sheet.headers = row;
         let row:Vec<String> = vec!["a".to_string(), "b".to_string(), "c".to_string(), "d".to_string()];
         data_sheet.tabular_data.push(row);
         let row:Vec<String> = vec!["aa".to_string(), "bb".to_string(), "cc".to_string(), "dd".to_string()];

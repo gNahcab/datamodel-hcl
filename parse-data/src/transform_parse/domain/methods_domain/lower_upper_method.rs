@@ -49,13 +49,11 @@ impl WrapperLowerUpperMethod {
     pub fn to_lower_method(&self) -> Result<LowerMethod, ParsingError> {
         let transient_structure = get_transient_structure(&self)?;
         let lower_method = LowerMethod::new(transient_structure.output, transient_structure.input.unwrap());
-        lower_method.is_correct()?;
         Ok(lower_method)
     }
     pub fn to_upper_method(&self) -> Result<UpperMethod, ParsingError> {
         let transient_structure = get_transient_structure(&self)?;
         let upper_method = UpperMethod::new(transient_structure.output, transient_structure.input.unwrap());
-        upper_method.is_correct()?;
         Ok(upper_method)
     }
 }
