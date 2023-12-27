@@ -15,7 +15,8 @@ pub struct WrapperReplaceMethod(pub(crate) hcl::Block);
 struct TransientStructureReplaceMethod {
     output: String,
    input: Option<HeaderValue>,
-    replace: Option<Vec<String>>,
+    old: Option<String>,
+    new: Option<String>,
     behavior: Option<String>,
     target: Option<String>,
 }
@@ -25,9 +26,10 @@ impl TransientStructureReplaceMethod {
         TransientStructureReplaceMethod{
             output,
             input: None,
-            replace: None,
+            old: None,
             behavior: None,
             target: None,
+            new: None,
         }
     }
     fn add_input(&mut self, expression: Expression) -> Result<(), ParsingError> {
@@ -38,22 +40,18 @@ impl TransientStructureReplaceMethod {
         self.input = Option::from(header_value);
         Ok(())
     }
-    fn add_replace(&mut self, expression: Expression) -> Result<(), ParsingError> {
-        if self.replace.is_some() {
-            return Err(ParsingError::ValidationError(format!("found multiple replace-attributes  in method '{:?}'.", self.output)));
+    fn add_new(&mut self, expression: Expression) -> Result<(), ParsingError> {
+        if self.new.is_some() {
+            return Err(ParsingError::ValidationError(format!("found multiple new-attributes  in method '{:?}'.", self.output)));
         }
-        match expression {
-            Expression::Array(array) => {
-                let vec_string: Vec<String> = array.iter().map(|expr|expr.to_string()).collect();
-                if vec_string.len() != 2 {
-                    return Err(ParsingError::ValidationError(format!("error in replace-method '{:?}'. 'replace' array doesn't have exactly two entries.", self)));
-                }
-                self.replace = Option::from(vec_string);
-            }
-            _ => {
-                return Err(ParsingError::ValidationError(format!("found 'replace'-value that is not an array in method '{:?}', found: {:?}.", self.output, expression)));
-            }
+        self.new = Option::from(expression.to_string_2()?);
+        Ok(())
+    }
+    fn add_old(&mut self, expression: Expression) -> Result<(), ParsingError> {
+        if self.old.is_some() {
+            return Err(ParsingError::ValidationError(format!("found multiple old-attributes  in method '{:?}'.", self.output)));
         }
+        self.old = Option::from(expression.to_string_2()?);
         Ok(())
     }
     fn add_condition(&mut self, block: hcl::Block) -> Result<(), ParsingError> {
@@ -83,8 +81,11 @@ impl TransientStructureReplaceMethod {
         if self.input.is_none() {
             return Err(ParsingError::ValidationError(format!("replace-method '{:?}' doesn't have an input-attribute provided", self)));
         }
-        if self.replace.is_none() {
-            return Err(ParsingError::ValidationError(format!("replace-method '{:?}' doesn't have a replace-attribute provided", self)));
+        if self.old.is_none() {
+            return Err(ParsingError::ValidationError(format!("replace-method '{:?}' doesn't have a old-attribute provided", self)));
+        }
+        if self.new.is_none() {
+            return Err(ParsingError::ValidationError(format!("replace-method '{:?}' doesn't have a new-attribute provided", self)));
         }
         if self.behavior.is_none() {
             return Err(ParsingError::ValidationError(format!("replace-method '{:?}' doesn't have a behavior-attribute in 'condition'-block provided", self)));
@@ -104,8 +105,11 @@ impl WrapperReplaceMethod{
                 "input" => {
                     transient_structure.add_input(attribute.expr.to_owned())?;
                 }
-                "replace" => {
-                    transient_structure.add_replace(attribute.expr.to_owned())?;
+                "old" => {
+                    transient_structure.add_old(attribute.expr.to_owned())?;
+                }
+                "new" => {
+                    transient_structure.add_new(attribute.expr.to_owned())?;
                 }
                 _ => {
                     return Err(ParsingError::ValidationError(format!("found this unknown attribute '{:?}' in method '{:?}'.", attribute, transient_structure.output)));
@@ -122,7 +126,6 @@ impl WrapperReplaceMethod{
                 }
             }
         }
-
         transient_structure.is_consistent()?;
 
         let replace_method = ReplaceMethod::new(transient_structure)?;
@@ -133,7 +136,8 @@ impl WrapperReplaceMethod{
 pub struct ReplaceMethod {
     pub output: String,
     pub input: HeaderValue,
-    pub replace: Vec<String>,
+    pub old: String,
+    pub new: String,
     pub behavior: BehaviorType,
     pub target: TargetType,
 }
@@ -150,7 +154,8 @@ impl ReplaceMethod {
         Ok(ReplaceMethod{
             output: transient_structure.output,
             input: transient_structure.input.unwrap(),
-            replace: transient_structure.replace.unwrap(),
+            old: transient_structure.old.unwrap(),
+            new: transient_structure.new.unwrap(),
             behavior: behavior_type,
             target: target_type,
         })
@@ -172,7 +177,8 @@ mod test {
     fn test_replace_method() {
         let block = block!(replace "replacement"{
             input = 3
-            replace = ["Dict", "Dictionary"]
+            old = "Dict"
+            new = "Dictionary"
             condition {
                 behavior = "lazy"
                 target = "part" // target = "word"

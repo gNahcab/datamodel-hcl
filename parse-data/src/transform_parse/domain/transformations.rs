@@ -200,14 +200,16 @@ mod test {
         let replace_method1 = ReplaceMethod {
             output: "hasExternalLink2".to_string(),
             input: HeaderValue::Name("hasExternalLink".to_string()),
-            replace: vec!["http".to_string(), "https".to_string()],
+            old: "http".to_string(),
+            new: "https".to_string(),
             behavior: BehaviorType::Lazy,
             target: TargetType::Part,
         };
         let replace_method2 = ReplaceMethod {
             output: "hasValue".to_string(),
             input: HeaderValue::Name("hasExternalLink".to_string()),
-            replace: vec!["http".to_string(), "https".to_string()],
+            old: "http".to_string(),
+            new: "https".to_string(),
             behavior: BehaviorType::Lazy,
             target: TargetType::Part,
         };
@@ -236,7 +238,8 @@ mod test {
         let replace_method = ReplaceMethod {
             output: "hasExternalLink2".to_string(),
             input: HeaderValue::Name("hasExternalLink".to_string()),
-            replace: vec!["http".to_string(), "https".to_string()],
+            old: "http".to_string(),
+            new: "https".to_string(),
             behavior: BehaviorType::Lazy,
             target: TargetType::Part,
         };

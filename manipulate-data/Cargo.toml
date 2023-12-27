@@ -13,3 +13,4 @@ import-data = { path = "../import-data", version = "0.1.0" }
 anyhow.workspace = true
 arrow.workspace = true
 polars.workspace = true
+regex.workspace = true

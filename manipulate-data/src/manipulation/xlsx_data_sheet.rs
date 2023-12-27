@@ -1,11 +1,9 @@
 use parse_data::errors::ParsingError;
-use parse_data::transform_parse::domain::methods_domain::method::Method;
 use parse_data::transform_parse::domain::sheet_info::SheetInfo;
 use parse_data::transform_parse::domain::transform_type::TransformXLSX;
 use parse_data::transform_parse::domain::transformations::Transformations;
 use parse_data::xlsx_parse::data_sheet::DataSheet;
-use crate::manipulation::manipulated_data_sheet;
-use crate::manipulation::manipulated_data_sheet::{ManipulatedDataSheet, ManipulatedDataSheetWrapper};
+use crate::manipulation::manipulated_data_sheet::ManipulatedDataSheetWrapper;
 
 
 pub fn check_consistency(data_sheets: &Vec<DataSheet>, transform_xlsx: &TransformXLSX) -> Result<(), ParsingError> {
@@ -62,6 +60,7 @@ mod test {
     use parse_data::transform_parse::domain::assignment::Assignments;
     use parse_data::transform_parse::domain::header_value::HeaderValue;
     use parse_data::transform_parse::domain::methods_domain::behavior_type::BehaviorType;
+    use parse_data::transform_parse::domain::methods_domain::combine_method::CombineMethod;
     use parse_data::transform_parse::domain::methods_domain::date_type::DateType;
     use parse_data::transform_parse::domain::methods_domain::target_type::TargetType;
     use parse_data::transform_parse::domain::organized_by::OrganizedBy;
@@ -101,7 +100,8 @@ mod test {
         let replace_method = parse_data::transform_parse::domain::methods_domain::replace_method::ReplaceMethod{
             output: "hasExternalLink2".to_string(),
             input: HeaderValue::Name("hasExternalLink".to_string()),
-            replace: vec!["http".to_string(), "https".to_string()],
+            old: "http".to_string(),
+            new: "https".to_string(),
             behavior: BehaviorType::Lazy,
             target: TargetType::Part,
         };
@@ -161,21 +161,24 @@ mod test {
         assignments.insert("hasValue".to_string(), HeaderValue::Name("values_column".to_string()));
         assignments.insert("hasExternalLink".to_string(), HeaderValue::Name("links_column".to_string()));
         assignments.insert("ID".to_string(), HeaderValue::Name("all_ids".to_string()));
+        data_sheet.assignments = assignments;
         let lower_method = parse_data::transform_parse::domain::methods_domain::lower_upper_method::LowerMethod{ output: "hasLowerValue".to_string(), input: HeaderValue::Number(0) };
         let upper_method = parse_data::transform_parse::domain::methods_domain::lower_upper_method::UpperMethod{ output: "hasUpperValue".to_string(), input: HeaderValue::Name("hasValue".to_string())  };
         let replace_method = parse_data::transform_parse::domain::methods_domain::replace_method::ReplaceMethod{
             output: "hasExternalLink2".to_string(),
             input: HeaderValue::Name("hasExternalLink".to_string()),
-            replace: vec!["http".to_string(), "https".to_string()],
+            old: "http".to_string(),
+            new: "https".to_string(),
             behavior: BehaviorType::Lazy,
             target: TargetType::Part,
         };
-        let combine_method = parse_data::transform_parse::domain::methods_domain::combine_method::CombineMethod{
-            input: vec![HeaderValue::Name("names_column".to_string()), HeaderValue::Number(4)],
-            output: "hasNewValue".to_string(),
+        let inputs = [HeaderValue::Name("Label".to_string()),HeaderValue::Name("ID".to_string())];
+        let combine_method: CombineMethod  = CombineMethod{
+            input: inputs.to_vec(),
+            output: "hasNewID".to_string(),
             separator: Option::from("_".to_string()),
-            prefix: Option::from("my_project".to_string()),
-            suffix: None,
+            prefix: Option::from("rosetta_".to_string()),
+            suffix: Option::from("_version.1".to_string()),
         };
         let to_date_method = parse_data::transform_parse::domain::methods_domain::to_date_method::ToDateMethod{
             output: "hasDate".to_string(),
