@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::ffi::c_void;
 use regex::{Regex, RegexBuilder};
 use polars::export::arrow::types::Index;
 use polars::export::num::ToPrimitive;
@@ -14,6 +13,7 @@ use parse_data::transform_parse::domain::methods_domain::target_type::TargetType
 use parse_data::transform_parse::domain::methods_domain::to_date_method::ToDateMethod;
 use parse_data::transform_parse::domain::transformations::Transformations;
 use parse_data::xlsx_parse::data_sheet::DataSheet;
+use crate::manipulation::date_variants::DateWrapper;
 
 pub struct ManipulatedDataSheetWrapper (pub(crate) DataSheet, pub(crate) Transformations);
 
@@ -67,7 +67,6 @@ impl ManipulatedDataSheetWrapper {
                             all_methods.remove(counter);
                         }
                     }
-                    _ => break
                 }
             }
         }
@@ -261,35 +260,13 @@ impl TransientDataSheet {
     } fn perform_to_date(to_date_method: &ToDateMethod, data: &Vec<String>) -> Result<Vec<String>, ParsingError> {
         let mut new_dates:Vec<String> = vec![];
         for value in data.iter() {
-            let new_date = transform_to_date(value)?;
+            let new_date = DateWrapper(to_date_method.date_type.to_owned(), value.to_owned()).to_date()?.to_string_date();
             new_dates.push(new_date);
         }
         Ok(new_dates)
     }
 }
 
-fn transform_to_date(maybe_date: &String) -> Result<String, ParsingError> {
-    todo!()
-    /*
-    all possible date formats: https://github.com/dasch-swiss/dsp-tools/blob/main/src/dsp_tools/commands/excel2xml/excel2xml_lib.py
-- 0476-09-04 -> GREGORIAN:CE:0476-09-04:CE:0476-09-04
-        - 0476_09_04 -> GREGORIAN:CE:0476-09-04:CE:0476-09-04
-        - 30.4.2021 -> GREGORIAN:CE:2021-04-30:CE:2021-04-30
-        - 5/11/2021 -> GREGORIAN:CE:2021-11-05:CE:2021-11-05
-        - Jan 26, 1993 -> GREGORIAN:CE:1993-01-26:CE:1993-01-26
-        - 28.2.-1.12.1515 -> GREGORIAN:CE:1515-02-28:CE:1515-12-01
-        - 25.-26.2.0800 -> GREGORIAN:CE:0800-02-25:CE:0800-02-26
-        - 1.9.2022-3.1.2024 -> GREGORIAN:CE:2022-09-01:CE:2024-01-03
-        - 1848 -> GREGORIAN:CE:1848:CE:1848
-        - 1849/1850 -> GREGORIAN:CE:1849:CE:1850
-        - 1849/50 -> GREGORIAN:CE:1849:CE:1850
-        - 1845-50 -> GREGORIAN:CE:1845:CE:1850
-        - 840-50 -> GREGORIAN:CE:840:CE:850
-        - 840-1 -> GREGORIAN:CE:840:CE:841
-        - 1000-900 av. J.-C. -> GREGORIAN:BC:1000:BC:900
-        - 45 av. J.-C. -> GREGORIAN:BC:45:BC:45
-     */
-}
 
 
 pub struct ManipulatedDataSheet {
@@ -309,12 +286,11 @@ mod test {
     use parse_data::transform_parse::domain::methods_domain::combine_method::CombineMethod;
     use parse_data::transform_parse::domain::methods_domain::replace_method::ReplaceMethod;
     use parse_data::transform_parse::domain::methods_domain::target_type::TargetType;
-    use crate::manipulation::manipulated_data_sheet::{ManipulatedDataSheet, transform_to_date, TransientDataSheet};
+    use crate::manipulation::manipulated_data_sheet::{ManipulatedDataSheet, TransientDataSheet};
 
     #[test]
     fn test_to_date() {
-        let value = &"".to_string();
-        let result = transform_to_date(value);
+        todo!()
     }
     #[test]
     fn test_combine() {

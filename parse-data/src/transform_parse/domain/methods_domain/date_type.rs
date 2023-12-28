@@ -1,6 +1,6 @@
 use crate::errors::ParsingError;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum DateType {
    Gregorian,
     Julian,
