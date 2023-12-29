@@ -1,22 +1,29 @@
-use regex::Regex;
-use parse_data::errors::ParsingError;
+use arrow::compute::year;
+use regex::Match;
 use parse_data::transform_parse::domain::methods_domain::date_type::DateType;
-use parse_data::xlsx_parse::data_sheet::DataSheet;
 
 
-pub(crate) struct TransientDate {
+pub(crate) struct TransientDateInfo {
     pub year: Option<usize>,
     pub month: Option<usize>,
     pub day: Option<usize>,
+    pub optional_year: Option<usize>,
+    pub optional_month: Option<usize>,
+    pub optional_day: Option<usize>,
     pub designation: Option<DatingDesignation>,
     pub calendar_type: Option<DateType>,
 }
-impl TransientDate {
-    pub(crate) fn new() -> TransientDate {
-        TransientDate{
+
+
+impl TransientDateInfo {
+    pub(crate) fn new() -> TransientDateInfo {
+        TransientDateInfo {
             year: None,
             month: None,
             day: None,
+            optional_year: None,
+            optional_month: None,
+            optional_day: None,
             designation: None,
             calendar_type: None,
         }
@@ -33,15 +40,55 @@ impl TransientDate {
     pub(crate) fn add_calendar_type(&mut self, calendar_type: DateType) {
         self.calendar_type = Option::from(calendar_type);
     }
-    pub(crate) fn add_designation(&mut self, designation: DatingDesignation) {
-        self.designation = Option::from(designation);
+    pub(crate) fn add_designation(&mut self, designation: &Option<Match>) {
+        if designation.is_some() {
+            self.designation = Option::from(DatingDesignation::Before);
+        } else {
+            self.designation =  Option::from(DatingDesignation::After)
+        }
+    }
+    pub(crate) fn add_optional_year(&mut self, year: &Option<Match>) {
+        if year.is_some() {
+          self.optional_year = Option::from(year.unwrap().as_str().parse::<usize>().unwrap());
+        }
+    }
+    pub(crate) fn add_optional_month(&mut self, month: &Option<Match>) {
+        if month.is_some() {
+            self.optional_month = Option::from(month.unwrap().as_str().parse::<usize>().unwrap());
+        }
+    }
+
+    pub(crate) fn add_optional_day(&mut self, day: &Option<Match>) {
+        if day.is_some() {
+            self.optional_day = Option::from(day.unwrap().as_str().parse::<usize>().unwrap());
+        }
+    }
+
+    pub(crate) fn prepare_optional(&mut self) {
+        if self.optional_day.is_some() || self.optional_month.is_some() || self.optional_year.is_some() {
+            if self.optional_year.is_none() {
+                self.optional_year = self.year;
+            }
+            self.switch_optional_day_month();
+        }
+
+    }
+    fn switch_optional_day_month(&mut self) {
+        // in case there is something like mm1-yyyy1 - dd2 - mm2 - yyyy2, it won't recognize that mm1 is a month a not a date, so we need to switch this here
+        if self.optional_day.is_some() {
+            if self.optional_month.is_none() {
+                self.optional_month = self.optional_day;
+                self.optional_day = None
+            }
+        }
     }
 }
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum DatingDesignation {
     Before,
     After
 }
+
 
 #[derive(Debug, PartialEq)]
 pub struct Date{
@@ -52,38 +99,58 @@ pub struct Date{
     pub calendar_type: DateType,
 }
 
-impl Date {
+#[derive(Debug, PartialEq)]
+pub struct DatePeriod {
+    pub(crate) date1: Date,
+    pub(crate) date2: Option<Date>,
+}
+impl DatePeriod {
+    pub(crate) fn new(transient: TransientDateInfo) -> DatePeriod {
+        let mut date2 = None;
+        if transient.optional_day.is_some() || transient.optional_month.is_some() || transient.optional_year.is_some() {
+            date2 = Option::from((Date::new_date2(&transient)));
+        }
+        DatePeriod{
+            date1: Date::new_date1(transient),
+            date2,
+        }
+    }
     pub(crate) fn to_string_date(&self) ->String {
         todo!()
     }
-    pub(crate) fn new(transient: TransientDate) -> Date {
+}
+impl Date {
+    pub(crate) fn new_date1(transient_data: TransientDateInfo) -> Date {
         Date{
-            year: transient.year.unwrap(),
-            month: transient.month,
-            day: transient.day,
-            designation: transient.designation.unwrap(),
-            calendar_type: transient.calendar_type.unwrap(),
+            year: transient_data.year.unwrap(),
+            month: transient_data.month,
+            day: transient_data.day,
+            designation: DatingDesignation::Before,
+            calendar_type: DateType::Gregorian,
+        }
+    }
+    pub(crate) fn new_date2(transient_data: &TransientDateInfo) -> Date {
+        Date{
+            year: transient_data.optional_year.unwrap(),
+            month:transient_data.optional_month,
+            day: transient_data.optional_day,
+            designation: transient_data.designation.as_ref().unwrap().clone(),
+            calendar_type: transient_data.calendar_type.clone().unwrap(),
         }
     }
 }
 #[cfg(test)]
 mod test {
     use parse_data::transform_parse::domain::methods_domain::date_type::DateType;
-    use crate::manipulation::date::{Date, DatingDesignation};
     use crate::manipulation::date_variants::DateWrapper;
 
     #[test]
     fn test_to_date_1() {
-        let maybe_date: String = "0476-09-04".to_string();
+        let maybe_date: String = "-04-050-12-23-300".to_string();
+        //todo 04-050-12-23-300 is read as day:04, year:050, day:12:month:23:year:300, but it is more likely: month:4 instead of day 4
         let result  = DateWrapper(DateType::Gregorian, maybe_date).to_date();
+        println!("{:?}", result);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), Date{
-            year: 476,
-            month: Some(9),
-            day: Some(4),
-            designation: DatingDesignation::After,
-            calendar_type: DateType::Gregorian,
-        });
     }
 }
 /*

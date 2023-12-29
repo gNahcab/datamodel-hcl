@@ -3,6 +3,7 @@ use crate::errors::ParsingError;
 pub trait Wrapper {
     fn get_output(&self) -> Result<String, ParsingError>;
     fn no_blocks(&self) -> Result<(), ParsingError> ;
+    fn no_attributes(&self) -> Result<(), ParsingError>;
     fn blocks(&self) -> Vec<&Block>;
     fn attributes(&self) -> Vec<&Attribute>;
 }
@@ -24,6 +25,14 @@ impl Wrapper for Block  {
         let blocks: Vec<&Block> = self.blocks();
         if blocks.len() != 0 {
             return Err(ParsingError::ValidationError(format!("found those blocks '{:?}' in method '{:?}', but blocks are not allowed.", blocks, self)));
+        }
+        Ok(())
+    }
+    fn no_attributes(&self) -> Result<(), ParsingError> {
+        // check that no attribute exists within this method-attribute
+        let attributes: Vec<&Attribute> = self.attributes();
+        if attributes.len() != 0 {
+            return Err(ParsingError::ValidationError(format!("found those attributes '{:?}' in method '{:?}', but attributes are not allowed.", attributes, self)));
         }
         Ok(())
     }

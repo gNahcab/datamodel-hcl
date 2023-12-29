@@ -1,7 +1,7 @@
 use regex::Regex;
 use parse_data::errors::ParsingError;
 use parse_data::transform_parse::domain::methods_domain::date_type::DateType;
-use crate::manipulation::date::{Date, DatingDesignation, TransientDate};
+use crate::manipulation::date::{Date, DatePeriod, DatingDesignation, TransientDateInfo};
 
 pub struct DateWrapper (pub(crate) DateType, pub(crate) String);
 
@@ -25,8 +25,7 @@ all possible date formats: https://github.com/dasch-swiss/dsp-tools/blob/main/sr
     - 45 av. J.-C. -> GREGORIAN:BC:45:BC:45
  */
 impl DateWrapper {
-    pub fn to_date(&self) -> Result<Date, ParsingError> {
-        // parse string here
+    pub fn to_date(&self) -> Result<DatePeriod, ParsingError> {
         //return as date-struct
         let date_1 = self.variant_1();
         if date_1.is_ok() {
@@ -40,95 +39,99 @@ impl DateWrapper {
         if date_3.is_ok() {
             return Ok(date_3.unwrap());
         }
-
-        Ok(Date{
-            year: 0,
-            month: None,
-            day: None,
-            designation: DatingDesignation::Before,
-            calendar_type: self.0.to_owned(),
-        })
+        Err(ParsingError::ValidationError(format!("cannot parse this '{:?}' to a date", &self.1)))
     }
-    pub(crate) fn variant_1(&self) -> Result <Date, ()> {
-        let re = Regex::new(r"^(?x)
-            (?P<year>\d{3,4})  # the year
-            -
-            (?P<month>\d{1,2}) # the month
-            -
-            (?P<day>\d{1,2})   # the day
-            $").unwrap();
-
+    fn find_match_1(&self, re: Regex) -> Result<DatePeriod, ()>{
         let caps = re.captures(self.1.as_str());
         if caps.is_some() {
             let caps = caps.unwrap();
-            let mut transient_data = TransientDate::new();
-            transient_data.add_year(&caps["year"]);
-            transient_data.add_month(&caps["month"]);
-            transient_data.add_day(&caps["day"]);
+            let mut transient_data = TransientDateInfo::new();
+            transient_data.add_year(&caps["year2"]);
+            transient_data.add_month(&caps["month2"]);
+            transient_data.add_day(&caps["day2"]);
+            transient_data.add_optional_year(&caps.name("year1"));
+            transient_data.add_optional_month(&caps.name("month1"));
+            transient_data.add_optional_day(&caps.name("day1"));
             transient_data.add_calendar_type(self.0.to_owned()) ;
-            transient_data.add_designation(DatingDesignation::After);
-            return Ok(Date::new(transient_data));
+            transient_data.add_designation(&caps.name("bc"));
+            transient_data.prepare_optional();
+            return Ok(DatePeriod::new(transient_data));
         }
         Err(())
+    }
+
+    /// five cases:
+    /// case 1: year-month-day || day-month-year
+    /// case 2: year-month || month-year
+    /// case 3: case 1 or case 2 with month written as word (e.g. Jan 1991)
+    /// case 3.2 month-day-year
+    /// case 4: year
+    /// case 5: symbols, words used to convey date is BC or CE
+
+    pub(crate) fn variant_1(&self) -> Result <DatePeriod, ()> {
+        // year at start, match yyy{y}-m{m}-d{d}
+        let re = Regex::new(r"^(?x)
+            (?P<bc>-)?
+            (?P<year1>\d{3,4})?  # the optional year 1
+            \W?
+            (?P<month1>\d{1,2})? # the optional month 1
+            \W?
+            (?P<day1>\d{1,2})?   # the optional day 1
+            \W?
+            (?P<year2>\d{3,4})  # the year
+            \W
+            (?P<month2>\d{1,2}) # the month
+            \W
+            (?P<day2>\d{1,2})   # the day
+            $").unwrap();
+        self.find_match_1(re)
+
 }
-    fn variant_2(&self) -> Result <Date, ()> {
-        //0476_09_04
-        todo!()
+    fn variant_2(&self) -> Result <DatePeriod, ()> {
+        // year at end, match d{d}-m{m}-yyy{y}
+        let re = Regex::new(r"^(?x)
+            (?P<bc>-)?
+            (?P<day1>\d{1,2})?  # the day 1
+            \W?
+            (?P<month1>\d{1,2})? # the month 1
+            \W?
+            (?P<year1>\d{3,4})?   # the year 1
+            \W?
+            (?P<day2>\d{1,2})  # the day 2
+            \W
+            (?P<month2>\d{1,2}) # the month 2
+            \W
+            (?P<year2>\d{3,4})   # the day 2
+            $").unwrap();
+        self.find_match_1(re)
     }
-    fn variant_3(&self) -> Result <Date, ()> {
-        //30.4.2021
-        todo!()
+    fn variant_5(&self) -> Result <DatePeriod, ()> {
+        //1848
+        //1849/50
+        //1849-50
+        //840-1
+        //-1000-900 -> BC:1000:BC:900? or BC:1000:CE:900? -> always take shorter period
+        let re = Regex::new(r"^(?x)
+            (?P<bc>-)?
+            (?P<year1>\d{3,4})?   # the year 1
+            \W?
+            (?P<year2>\d{3,4})   # the year 2
+            $").unwrap();
+        self.find_match_1(re)
     }
-    fn variant_4(&self) -> Result <Date, ()> {
-        //5/11/2021
-        todo!()
-    }
-    fn variant_5(&self) -> Result <Date, ()> {
+    fn variant_3(&self) -> Result <DatePeriod, ()> {
         //Jan 26, 1993
+        //January 26, 1993
+        todo!()
+    }
+    fn variant_4(&self) -> Result <DatePeriod, ()> {
+        //26 Jan 1993
+        //26 Januar 1993
         todo!()
     }
     fn variant_6(&self) -> Result <Date, ()> {
-        //28.2.-1.12.1515
-        todo!()
-    }
-    fn variant_7(&self) -> Result <Date, ()> {
-        //25.-26.2.0800
-        todo!()
-    }
-    fn variant_8(&self) -> Result <Date, ()> {
-        //1.9.2022-3.1.2024
-        todo!()
-    }
-    fn variant_9(&self) -> Result <Date, ()> {
-        //1848
-        todo!()
-    }
-    fn variant_10(&self) -> Result <Date, ()> {
-        //1849/1850
-        todo!()
-    }
-    fn variant_11(&self) -> Result <Date, ()> {
-        //1849/50
-        todo!()
-    }
-    fn variant_12(&self) -> Result <Date, ()> {
-        //1849-50
-        todo!()
-    }
-    fn variant_13(&self) -> Result <Date, ()> {
-        //840-1
-        todo!()
-    }
-    fn variant_14(&self) -> Result <Date, ()> {
         //1000-900 av. J.-C
-        todo!()
-    }
-    fn variant_15(&self) -> Result <Date, ()> {
         //45 av. J.-C.
-        todo!()
-    }
-    fn variant_16(&self) -> Result <Date, ()> {
-        //-1000-900 -> BC:1000:BC:900? or BC:1000:CE:900? -> always take shorter period
         todo!()
     }
 }

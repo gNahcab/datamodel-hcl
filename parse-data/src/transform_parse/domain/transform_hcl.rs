@@ -164,14 +164,13 @@ mod test {
                 id = 5 // String = Header, wenn vorhanden
                 not_lowered = 1
                 hasName = 2
-                hasIdentifier = 3
                 hasChildren = 4
                 hasExternalLink = 5
                 }
 
                 transformations {
                     lower "lower" {
-                        input = 5
+                        input = "id"
                     }
                      combine "label"{
                             input = [0, 6]
@@ -180,13 +179,31 @@ mod test {
                             suffix = "_ZIP"
                     }
                  replace "hasIdentifier" {
-                        input = 1
-                        replace = ["DICT", "DICTIONARY"]
+                        input = 3
+                        old = "DICT"
+                        new = "Dictionary"
                         condition {
                          behavior = "lazy"
                             target = "part"
                         }
                     }
+                to_date "hasDate" {
+                  input = 6
+                  calendar_type= "Gregorian"
+                  pattern "1" {
+                    // e.g. would catch 1.12 - 23.12.1991
+                    // e.g. would catch 1 Dez - 23 Dezember 1991
+                    first {
+                                day = 1
+                                month = 2
+                            }
+                    date {
+                                day = 1
+                                month = 2
+                                year = 3
+                            }
+                  }
+    }
 
                 }
             }
@@ -198,7 +215,6 @@ mod test {
                 id = "ID" // String = Header, wenn vorhanden
                 not_lowered = 1
                 hasName = 2
-                hasIdentifier = 3
                 hasChildren = 4
                 hasExternalLink = 5
                 }
@@ -214,8 +230,9 @@ mod test {
                             suffix = "_ZIP"
                     }
                  replace "hasIdentifier" {
-                        input = 1
-                        replace = ["DICT", "DICTIONARY"]
+                        input = 3
+                        old = "DICT"
+                        new = "Dictionary"
                         condition {
                          behavior = "lazy"
                             target = "part"

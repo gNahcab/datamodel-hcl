@@ -31,6 +31,23 @@ sheet "1" {
         target = "part"
       }
     }
+    to_date "hasDate" {
+      input = 6
+      calendar_type= "Gregorian"
+      pattern "1" {
+        // e.g. 1.12 - 23.12.1991
+        // e.g. 1 Dez - 23 Dezember 1991
+        first {
+          month = 1
+          year = 2
+        }
+        date {
+          day = 1
+          month = 2
+          year = 3
+        }
+      }
+    }
 
   }
 }

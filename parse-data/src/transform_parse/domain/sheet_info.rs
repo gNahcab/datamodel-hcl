@@ -194,8 +194,6 @@ impl SheetInfo {
             // 1. output-value in transform should never match with new header(output) in assignments
             let output_assignments: Vec<&String> = self.assignments.assignments_to_header_value.iter().map(|(output, input)|output).collect();
             let output_transforms: Vec<&String> = self.transformations.as_ref().unwrap().output_values();
-            println!("output transforms '{:?}'", output_transforms);
-            println!("output assignments '{:?}'", output_assignments);
             let identical_values: Vec<&&String> = output_assignments.iter().filter(|a_output|output_transforms.contains(a_output)).collect();
             if identical_values.len() != 0 {
                 return Err(ParsingError::ValidationError(format!("found in sheet-nr '{:?}' identical values in output-values of transform and assignments: '{:?}'.", self.sheet_nr, identical_values)));
@@ -204,7 +202,9 @@ impl SheetInfo {
             let input_assignments: Vec<&HeaderValue> = self.assignments.assignments_to_header_value.iter().map(|(output, input)|input).collect();
             let input_transforms:Vec<&HeaderValue> = self.transformations.as_ref().unwrap().input_values();
             let identical_values: Vec<&&HeaderValue> = input_assignments.iter().filter(|header|input_transforms.contains(header)).collect();
-            println!("identical_value: {:?}", identical_values);
+            if identical_values.len() != 0 {
+                return Err(ParsingError::ValidationError(format!("the input_values used in assignments shouldn't be reused in transform-methods. If a number is assigned to a value in assignments, use the assigned value in transform-methods. The following input-values were reused: {:?}", identical_values)));
+            }
         }
         Ok(())
     }

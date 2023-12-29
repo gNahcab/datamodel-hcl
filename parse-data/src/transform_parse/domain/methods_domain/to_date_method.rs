@@ -1,7 +1,8 @@
-use hcl::Expression;
+use hcl::{Block, Expression};
 use crate::errors::ParsingError;
 use crate::expression_trait::ExpressionTransform;
 use crate::transform_parse::domain::header_value::{HeaderMethods, HeaderValue, U8implementation};
+use crate::transform_parse::domain::methods_domain::date_pattern::{DatePattern, WrapperDatePattern};
 use crate::transform_parse::domain::methods_domain::date_type::DateType;
 use crate::transform_parse::domain::methods_domain::wrapper_trait::Wrapper;
 
@@ -12,6 +13,7 @@ struct TransientStructureToDateMethod{
     output: String,
     input: Option<HeaderValue>,
     date_type: Option<String>,
+    date_pattern: Vec<DatePattern>,
 }
 
 impl TransientStructureToDateMethod {
@@ -20,6 +22,7 @@ impl TransientStructureToDateMethod {
             output,
             input: None,
             date_type: None,
+            date_pattern: vec![],
         }
     }
     fn add_input(&mut self, input: Expression) -> Result<(), ParsingError> {
@@ -37,6 +40,9 @@ impl TransientStructureToDateMethod {
         self.date_type = Option::from(date_type);
         Ok(())
     }
+    fn add_date_pattern(&mut self, date_pattern: DatePattern) {
+        self.date_pattern.push(date_pattern);
+    }
     fn is_consistent(&self) -> Result<(), ParsingError> {
         if self.input.is_none() {
             return Err(ParsingError::ValidationError(format!("error in to_date-method '{:?}'. 'input'-attribute not provided", self)));
@@ -49,14 +55,17 @@ impl TransientStructureToDateMethod {
 }
 impl WrapperToDateMethod {
     pub fn to_date_method(&self) -> Result<ToDateMethod, ParsingError> {
-        self.0.no_blocks()?;
         let mut transient_structure: TransientStructureToDateMethod = TransientStructureToDateMethod::new(self.0.get_output()?);
+        let blocks = self.0.blocks();
+        if blocks.len() == 0 {
+            return Err(ParsingError::ValidationError(format!("'to_date'-method {:?} should have one or more 'pattern'-blocks, but zero were found", transient_structure.output)))
+        }
         for attribute in self.0.attributes() {
             match attribute.key.as_str() {
                 "input" => {
                     transient_structure.add_input(attribute.expr.to_owned())?;
                 }
-                "date_type" => {
+                "calendar_type" => {
                     transient_structure.add_date_type(attribute.expr.to_string_2()?)?;
                 }
                 _ => {
@@ -64,6 +73,17 @@ impl WrapperToDateMethod {
                 }
             }
 
+        }
+        for block in blocks {
+            match block.identifier.as_str() {
+                "pattern" => {
+                    let date_pattern = WrapperDatePattern(block.to_owned()).to_pattern()?;
+                    transient_structure.add_date_pattern(date_pattern);
+                }
+                _ => {
+                    return Err(ParsingError::ValidationError(format!("found unknown block-identifier in 'to_date'-method: {:?}", transient_structure.output)));
+                }
+            }
         }
         transient_structure.is_consistent()?;
         let to_date_method = ToDateMethod::new(transient_structure)?;

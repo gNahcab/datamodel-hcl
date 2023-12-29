@@ -156,28 +156,28 @@ impl TransformationsWrapper {
              match block.identifier.as_str() {
                 "lower" => {
                    let lower_method = WrapperLowerUpperMethod(block.to_owned()).to_lower_method()?;
-                   transformations.add_lower_method(lower_method);
+                   transformations.add_lower_method(lower_method)?;
                 }
                 "upper" => {
                     let upper_method = WrapperLowerUpperMethod(block.to_owned()).to_upper_method()?;
-                    transformations.add_upper_method(upper_method);
+                    transformations.add_upper_method(upper_method)?;
                 }
                 "combine"=> {
                     let combine_method = WrapperCombineMethod(block.to_owned()).to_combine_method()?;
-                    transformations.add_combine_method(combine_method);
+                    transformations.add_combine_method(combine_method)?;
                 }
                 "replace"=> {
                     let replace_method = WrapperReplaceMethod(block.to_owned()).to_replace_method()?;
-                    transformations.add_replace_method(replace_method);
+                    transformations.add_replace_method(replace_method)?;
                 }
                 "to_date"=> {
                     let to_date_method = WrapperToDateMethod(block.to_owned()).to_date_method()?;
-                    transformations.add_to_date_method(to_date_method);
+                    transformations.add_to_date_method(to_date_method)?;
                 }
                 _ => {
                     return Err(ParsingError::ValidationError(format!("unknown method found in transformations: can't find '{:?}'", block.identifier)));
                 }
-            };
+            }
         }
         Ok(transformations)
     }
