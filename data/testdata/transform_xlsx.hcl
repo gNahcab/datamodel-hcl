@@ -44,6 +44,7 @@ sheet "1" {
         date {
           day = 1
           month = 2
+          month_word = true
           year = 3
         }
       }

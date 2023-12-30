@@ -9,6 +9,7 @@ pub enum ParsingError {
     ParseProjectModel(String),
     ValidationError(String),
     XlsxParse(String),
+    RegexError(regex::Error),
 }
 
 
@@ -23,3 +24,8 @@ impl From<ParseIntError> for ParsingError {
     }
 }
 
+impl From<regex::Error> for ParsingError {
+    fn from(error: regex::Error) -> Self {
+        ParsingError::RegexError(error)
+    }
+}

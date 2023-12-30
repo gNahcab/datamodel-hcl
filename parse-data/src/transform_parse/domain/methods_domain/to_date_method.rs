@@ -95,6 +95,7 @@ pub struct ToDateMethod{
     pub output: String,
     pub input: HeaderValue,
     pub date_type: DateType,
+    pub date_patterns: Vec<DatePattern>
 }
 
 
@@ -105,6 +106,7 @@ impl ToDateMethod {
             output: transient_structure.output,
             input: transient_structure.input.unwrap(),
             date_type,
+            date_patterns: transient_structure.date_pattern,
         })
     }
     pub(crate) fn is_correct(&self) -> Result<(), ParsingError> {

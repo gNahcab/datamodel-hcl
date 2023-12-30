@@ -260,7 +260,7 @@ impl TransientDataSheet {
     } fn perform_to_date(to_date_method: &ToDateMethod, data: &Vec<String>) -> Result<Vec<String>, ParsingError> {
         let mut new_dates:Vec<String> = vec![];
         for value in data.iter() {
-            let new_date = DateWrapper(to_date_method.date_type.to_owned(), value.to_owned()).to_date()?.to_string_date();
+            let new_date = DateWrapper(to_date_method.to_owned(), value.to_owned()).to_date()?.to_string_date();
             new_dates.push(new_date);
         }
         Ok(new_dates)
@@ -284,13 +284,54 @@ mod test {
     use parse_data::transform_parse::domain::header_value::HeaderValue;
     use parse_data::transform_parse::domain::methods_domain::behavior_type::BehaviorType;
     use parse_data::transform_parse::domain::methods_domain::combine_method::CombineMethod;
+    use parse_data::transform_parse::domain::methods_domain::date_bricks::{DateBricks, DateInfo, DateName};
+    use parse_data::transform_parse::domain::methods_domain::date_pattern::DatePattern;
+    use parse_data::transform_parse::domain::methods_domain::date_type::DateType;
     use parse_data::transform_parse::domain::methods_domain::replace_method::ReplaceMethod;
     use parse_data::transform_parse::domain::methods_domain::target_type::TargetType;
+    use parse_data::transform_parse::domain::methods_domain::to_date_method::ToDateMethod;
     use crate::manipulation::manipulated_data_sheet::{ManipulatedDataSheet, TransientDataSheet};
-
+    #[test]
+    fn test_test() {
+        let value = "2.January 1991".to_string();
+        let re1 = Regex::new(r"^(?x)(?P<day2>\d{1,2})\W{1,2}(?P<month1>[A-Za-z]*)\W{1,2}(?P<year2>\d{3,4})").unwrap();
+        let re2 = Regex::new("^(?x)(?P<day2>\\d{1,2})\\W{1,2}(?P<month1>[A-Za-z]*)\\W{1,2}(?P<year2>\\d{3,4})").unwrap();
+        let caps = re1.captures(value.as_str());
+        println!("here: {:?}",caps);
+}
     #[test]
     fn test_to_date() {
-        todo!()
+        let vec_1: Vec<String> = ["01.01.1991".to_string(), "3.2.400".to_string(),  "2.January 1991".to_string()].to_vec();
+        let date_method = ToDateMethod{
+            output: "hasDate".to_string(),
+            input: HeaderValue::Name("hasDateRaw".to_string()),
+            date_type: DateType::Gregorian,
+            date_patterns: [
+                DatePattern{
+                nr: 1,
+                first_date: None,
+                date: DateBricks {
+                    month_word: Option::from(false),
+                    day: Option::from(DateInfo { nr: 1, name: DateName::Day }),
+                    month: Option::from(DateInfo { nr: 2, name: DateName::Month }),
+                    year: Option::from(DateInfo { nr: 3, name: DateName::Year }),
+                },
+            },
+                DatePattern{
+                    nr: 2,
+                    first_date: None,
+                    date: DateBricks {
+                        month_word: Option::from(true),
+                        day: Option::from(DateInfo { nr: 1, name: DateName::Day }),
+                        month: Option::from(DateInfo { nr: 2, name: DateName::Month }),
+                        year: Option::from(DateInfo { nr: 3, name: DateName::Year }),
+                    },
+                },
+
+            ].to_vec(),
+        };
+        let result = TransientDataSheet::perform_to_date(&date_method, &vec_1);
+        println!("{:?}", result);
     }
     #[test]
     fn test_combine() {

@@ -1,90 +1,122 @@
-use arrow::compute::year;
-use regex::Match;
+use regex::{Captures};
+use parse_data::errors::ParsingError;
+use parse_data::transform_parse::domain::methods_domain::date_pattern::DatePattern;
 use parse_data::transform_parse::domain::methods_domain::date_type::DateType;
 
-
-pub(crate) struct TransientDateInfo {
-    pub year: Option<usize>,
-    pub month: Option<usize>,
-    pub day: Option<usize>,
-    pub optional_year: Option<usize>,
-    pub optional_month: Option<usize>,
-    pub optional_day: Option<usize>,
-    pub designation: Option<DatingDesignation>,
-    pub calendar_type: Option<DateType>,
+pub struct TransientDate{
+    day: Option<u8>,
+    month: Option<u8>,
+    year: Option<usize>,
+    epoch: Option<Epoch>,
 }
 
-
-impl TransientDateInfo {
-    pub(crate) fn new() -> TransientDateInfo {
-        TransientDateInfo {
-            year: None,
-            month: None,
-            day: None,
-            optional_year: None,
-            optional_month: None,
-            optional_day: None,
-            designation: None,
-            calendar_type: None,
+impl TransientDate {
+    fn new(day: Option<u8>, month: Option<u8>, year: Option<usize>) -> TransientDate {
+        TransientDate{
+            day,
+            month,
+            year,
+            //todo: discern BC/CE
+            epoch: Option::from(Epoch::After),
         }
     }
-    pub(crate) fn add_year(&mut self, year: &str) {
-        self.year = Option::from(year.parse::<usize>().unwrap());
-    }
-     pub(crate) fn add_month(&mut self, month:&str) {
-        self.month = Option::from(month.parse::<usize>().unwrap());
-    }
-     pub(crate) fn add_day(&mut self, day:&str) {
-        self.day = Option::from(day.parse::<usize>().unwrap());
-    }
-    pub(crate) fn add_calendar_type(&mut self, calendar_type: DateType) {
-        self.calendar_type = Option::from(calendar_type);
-    }
-    pub(crate) fn add_designation(&mut self, designation: &Option<Match>) {
-        if designation.is_some() {
-            self.designation = Option::from(DatingDesignation::Before);
+}
+
+pub(crate) struct TransientDatePeriod {
+    pub date1: Option<TransientDate>,
+    pub date2: TransientDate,
+    pub calendar_type: DateType,
+}
+
+impl TransientDatePeriod {
+    pub(crate) fn new(caps: Captures, date_pattern: &DatePattern, date_type: &DateType) -> Result<TransientDatePeriod, ParsingError> {
+        let day1:Option<u8> = if caps.name("day1").is_some() {
+            let number: &u8 = &caps["day1"].to_owned().parse::<u8>().unwrap();
+            Option::from(number.to_owned())
         } else {
-            self.designation =  Option::from(DatingDesignation::After)
-        }
-    }
-    pub(crate) fn add_optional_year(&mut self, year: &Option<Match>) {
-        if year.is_some() {
-          self.optional_year = Option::from(year.unwrap().as_str().parse::<usize>().unwrap());
-        }
-    }
-    pub(crate) fn add_optional_month(&mut self, month: &Option<Match>) {
-        if month.is_some() {
-            self.optional_month = Option::from(month.unwrap().as_str().parse::<usize>().unwrap());
-        }
-    }
-
-    pub(crate) fn add_optional_day(&mut self, day: &Option<Match>) {
-        if day.is_some() {
-            self.optional_day = Option::from(day.unwrap().as_str().parse::<usize>().unwrap());
-        }
-    }
-
-    pub(crate) fn prepare_optional(&mut self) {
-        if self.optional_day.is_some() || self.optional_month.is_some() || self.optional_year.is_some() {
-            if self.optional_year.is_none() {
-                self.optional_year = self.year;
+            None
+        };
+        let month1 = if caps.name("month1").is_some() {
+            if date_pattern.first_date.unwrap().month_word.unwrap() == true {
+                let name = &caps["month1"].to_owned();
+                Option::from(parse_month_to_number(name)?)
+            } else {
+                let number: &u8 = &caps["month1"].to_owned().parse::<u8>().unwrap();
+                Option::from(number.to_owned())
             }
-            self.switch_optional_day_month();
-        }
-
-    }
-    fn switch_optional_day_month(&mut self) {
-        // in case there is something like mm1-yyyy1 - dd2 - mm2 - yyyy2, it won't recognize that mm1 is a month a not a date, so we need to switch this here
-        if self.optional_day.is_some() {
-            if self.optional_month.is_none() {
-                self.optional_month = self.optional_day;
-                self.optional_day = None
+        } else {
+            None
+        };
+        let year1 = if caps.name("year1").is_some() {
+            let number: &usize = &caps["year1"].to_owned().parse::<usize>().unwrap();
+            Option::from(number.to_owned())
+        } else {
+            None
+        };
+        let day2:Option<u8> = if caps.name("day2").is_some() {
+            let number: &u8 = &caps["day2"].to_owned().parse::<u8>().unwrap();
+            Option::from(number.to_owned())
+        } else {
+            None
+        };
+        let month2 = if caps.name("month2").is_some() {
+            if date_pattern.date.month_word.unwrap() == true {
+                let name = &caps["month2"].to_owned();
+                Option::from(parse_month_to_number(name)?)
+            } else {
+                let number: &u8 = &caps["month1"].to_owned().parse::<u8>().unwrap();
+                Option::from(number.to_owned())
             }
+        } else {
+            None
+        };
+        // year2 is obligatory
+        let year2 = &caps["year2"].parse::<usize>().unwrap();
+        let year2 = Option::from(year2.to_owned());
+        let mut date1 = Option::from(TransientDate::new(day1, month1, year1));
+        let mut date2 = TransientDate::new(day2, month2, year2);
+        Ok(TransientDatePeriod {
+            date1,
+            date2,
+            calendar_type: date_type.to_owned(),
+        })
+    }
+    pub(crate) fn complete_dates(&mut self) -> Result<(), ParsingError> {
+        if self.date2.day.is_none() {
+            self.date2.day = Option::from(1u8);
         }
+        if self.date2.month.is_none() {
+            self.date2.month = Option::from(1u8);
+        }
+        if self.date1.is_some() {
+            if self.date1.as_ref().unwrap().day.is_none() {
+                self.date1.as_mut().unwrap().day = self.date2.day;
+            }
+            if self.date1.as_ref().unwrap().month.is_none() {
+                self.date1.as_mut().unwrap().month = self.date2.month;
+            }
+            if self.date1.as_ref().unwrap().year.is_none() {
+                self.date1.as_mut().unwrap().year = self.date2.year;
+            }
+        } else {
+            self.date1 = Option::from(TransientDate{
+                day: self.date2.day,
+                month: self.date2.month,
+                year: self.date2.year,
+                epoch: self.date2.epoch,
+            });
+        }
+        Ok(())
     }
 }
+
+fn parse_month_to_number(name: &String) -> Result<u8, ParsingError> {
+    // parse Jan/Janu/Januar/January/Janv/Janvier etc. to 1  etc.pp.
+    todo!()
+}
+
 #[derive(Debug, PartialEq, Copy, Clone)]
-pub enum DatingDesignation {
+pub enum Epoch {
     Before,
     After
 }
@@ -93,49 +125,53 @@ pub enum DatingDesignation {
 #[derive(Debug, PartialEq)]
 pub struct Date{
     pub year: usize,
-    pub month: Option<usize>,
-    pub day: Option<usize>,
-    pub designation: DatingDesignation,
-    pub calendar_type: DateType,
+    pub month: u8,
+    pub day: u8,
+    pub epoch: Epoch,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct DatePeriod {
     pub(crate) date1: Date,
-    pub(crate) date2: Option<Date>,
+    pub(crate) date2: Date,
+    pub calendar_type: DateType,
 }
 impl DatePeriod {
-    pub(crate) fn new(transient: TransientDateInfo) -> DatePeriod {
-        let mut date2 = None;
-        if transient.optional_day.is_some() || transient.optional_month.is_some() || transient.optional_year.is_some() {
-            date2 = Option::from((Date::new_date2(&transient)));
-        }
+    pub(crate) fn new(transient: TransientDatePeriod) -> DatePeriod {
+        let date2 = Date::new_date(transient.date2);
+        let date1 = Date::new_date(transient.date1.unwrap());
         DatePeriod{
-            date1: Date::new_date1(transient),
+            date1,
             date2,
-        }
-    }
-    pub(crate) fn to_string_date(&self) ->String {
-        todo!()
-    }
-}
-impl Date {
-    pub(crate) fn new_date1(transient_data: TransientDateInfo) -> Date {
-        Date{
-            year: transient_data.year.unwrap(),
-            month: transient_data.month,
-            day: transient_data.day,
-            designation: DatingDesignation::Before,
             calendar_type: DateType::Gregorian,
         }
     }
-    pub(crate) fn new_date2(transient_data: &TransientDateInfo) -> Date {
+    pub(crate) fn to_string_date(&self) ->String {
+        // calendar:epoch:yyyy-mm-dd:epoch:yyyy-mm-dd
+        let calendar = &self.calendar_type;
+        let mut date:String = "".to_string();
+        if self.date1.is_some() {
+            let epoch = self.date1.as_ref().unwrap().epoch;
+            let day = self.date1.as_ref().unwrap().day;
+            let month = self.date1.as_ref().unwrap().month;
+            let year = self.date1.as_ref().unwrap().year;
+            date = format!("{:?}:{:?}:{:?}:{:?}:{:?}:", calendar, epoch, year, month, day);
+        }
+        let epoch = self.date2.epoch;
+        let day = self.date2.day;
+        let month = self.date2.month;
+        let year = self.date2.year;
+        date = format!("{:?}{:?}:{:?}:{:?}:{:?}:{:?}",date, calendar, epoch, year, month, day);
+        date
+    }
+}
+impl Date {
+    pub(crate) fn new_date(date: TransientDate) -> Date {
         Date{
-            year: transient_data.optional_year.unwrap(),
-            month:transient_data.optional_month,
-            day: transient_data.optional_day,
-            designation: transient_data.designation.as_ref().unwrap().clone(),
-            calendar_type: transient_data.calendar_type.clone().unwrap(),
+            year: date.year.unwrap(),
+            month: date.month.unwrap(),
+            day: date.day.unwrap(),
+            epoch: date.epoch.unwrap(),
         }
     }
 }
@@ -146,11 +182,7 @@ mod test {
 
     #[test]
     fn test_to_date_1() {
-        let maybe_date: String = "-04-050-12-23-300".to_string();
         //todo 04-050-12-23-300 is read as day:04, year:050, day:12:month:23:year:300, but it is more likely: month:4 instead of day 4
-        let result  = DateWrapper(DateType::Gregorian, maybe_date).to_date();
-        println!("{:?}", result);
-        assert!(result.is_ok());
     }
 }
 /*

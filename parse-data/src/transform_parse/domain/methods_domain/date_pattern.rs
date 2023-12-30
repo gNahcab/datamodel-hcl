@@ -1,24 +1,118 @@
-use std::num::ParseIntError;
-use hcl::{Attribute, Block, BlockLabel, Body, from_reader, Identifier, Number};
-use polars::export::chrono::Date;
+use hcl::{Attribute, Block, BlockLabel, Body, from_reader, Identifier, Number, to_vec, value};
+use polars::export::arrow::compute::filter::filter;
+use regex::Regex;
 use crate::errors::ParsingError;
-use crate::expression_trait::ExpressionTransform;
-use crate::transform_parse::domain::header_value::U8implementation;
-use crate::transform_parse::domain::methods_domain::date_bricks::{DateBricks, WrapperDateBricks};
+use crate::transform_parse::domain::methods_domain::date_bricks::{DateBricks, DateInfo, DateName, WrapperDateBricks};
 use crate::transform_parse::domain::methods_domain::wrapper_trait::Wrapper;
 
 pub struct WrapperDatePattern(pub(crate) hcl::Block);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DatePattern {
-    nr: usize,
-    first_date: Option<DateBricks>,
-    date: DateBricks,
+    pub nr: usize,
+    pub first_date: Option<DateBricks>,
+    pub date: DateBricks,
 }
 
 impl DatePattern {
     fn new(transient: TransientDatePattern) -> DatePattern {
         DatePattern{nr: transient.nr, first_date: transient.first_date, date: transient.date.unwrap()}
+    }
+    fn is_consistent(&self) -> Result<(), ParsingError> {
+        if self.date.year.is_none() {
+            return Err(ParsingError::ValidationError(format!("the 'year' of 'date' doesn't exist in pattern-nr '{:?}', this is forbidden.", self.nr)));
+        }
+        if self.date.day.is_some() && self.date.year.is_some() && self.date.month.is_none() {
+            return Err(ParsingError::ValidationError(format!("the 'day' and 'year' of 'date' exist but not 'month' in pattern-nr '{:?}', this is forbidden: either day, month and year exist or month and year or year alone.", self.nr)));
+        }
+        if self.first_date.is_some() {
+             if self.first_date.as_ref().unwrap().year.is_some() && self.first_date.as_ref().unwrap().month.is_none() {
+                return Err(ParsingError::ValidationError(format!("the 'day' and 'year' of 'first' exist but not 'month' in pattern-nr '{:?}', this is forbidden: either day, month and year exist or month and year or year or month or day alone.", self.nr)));
+            }
+            // if day exists: does day exist in date?
+            if self.first_date.as_ref().unwrap().day.is_some() && self.date.day.is_none() {
+                return Err(ParsingError::ValidationError(format!("'day' exists in 'first' but not in 'date' in pattern-nr '{:?}', this is forbidden.", self.nr)));
+            }
+            // if month exists: does month exist in date?
+            if self.first_date.as_ref().unwrap().month.is_some() && self.date.month.is_none() {
+                return Err(ParsingError::ValidationError(format!("'month' exists in 'first' but not in 'date' in pattern-nr '{:?}', this is forbidden.", self.nr)));
+            }
+        }
+        Ok(())
+    }
+    pub fn to_regex(&self) -> Result<Regex, ParsingError> {
+        let regex_pattern= self.build_regex_pattern()?;
+        let regex = Regex::new(regex_pattern.as_str())?;
+        Ok(regex)
+    }
+    fn build_regex_pattern(&self) -> Result<String,ParsingError> {
+        let mut regex_str: String = format!(r"^(?x)");
+        let non_word_or_number = r"\W{1,2}";
+        if self.first_date.is_some() {
+            let nr_day = &self.first_date.as_ref().unwrap().day;
+            let nr_month = &self.first_date.as_ref().unwrap().month;
+            let nr_year = &self.first_date.as_ref().unwrap().year;
+            let mut dates: Vec<&DateInfo> = [nr_day, nr_month, nr_year].to_vec().iter().filter_map(|maybe_nr|
+                match maybe_nr {
+                    None => {None}
+                    Some(date_info) => {Some(date_info)}
+                }).collect();
+            dates.sort_by(|date_1, date_2| date_1.nr.cmp(&date_2.nr));
+            for date_info in dates {
+                match date_info.name {
+                    DateName::Day => {
+                        let day = r"(?P<day1>\d{1,2})" ;
+                        regex_str = format!("{}{}{}", regex_str, day, non_word_or_number);
+                    }
+                    DateName::Month => {
+                        let month =
+                        if self.first_date.as_ref().unwrap().month_word.unwrap() == true {
+                            r"(?P<month1>[A-Za-z]*)"
+                        } else {
+                            r"(?P<month1>\d{1,2})"
+                        };
+                        regex_str = format!("{}{}{}", regex_str, month, non_word_or_number);
+                    }
+                    DateName::Year => {
+                        let year = r"(?P<year1>\d{3,4})";
+                        regex_str = format!("{}{}{}", regex_str, year, non_word_or_number);
+                    }
+                }
+            }
+        }
+        let nr_day = &self.date.day;
+        let nr_month = &self.date.month;
+        let nr_year = &self.date.year;
+        let mut dates: Vec<&DateInfo> = [nr_day, nr_month, nr_year].to_vec().iter().filter_map(|maybe_nr|
+            match maybe_nr {
+                None => {None}
+                Some(date_info) => {Some(date_info)}
+            }).collect();
+        dates.sort_by(|date_1, date_2| date_1.nr.cmp(&date_2.nr));
+        for date_info in dates {
+            match date_info.name {
+                DateName::Day => {
+                    let day = r"(?P<day2>\d{1,2})";
+                    regex_str = format!(r"{}{}{}", regex_str, day, non_word_or_number);
+                }
+                DateName::Month => {
+                    let month =
+                        if self.date.month_word.unwrap() == true {
+                            r"(?P<month1>[A-Za-z]*)"
+                        } else {
+                            r"(?P<month1>\d{1,2})"
+                        };
+                    regex_str = format!(r"{}{}{}", regex_str, month, non_word_or_number);
+                }
+                DateName::Year => {
+                    let year = r"(?P<year2>\d{3,4})";
+                    regex_str = format!(r"{}{}{}", regex_str, year, non_word_or_number);
+                }
+            }
+        }
+        //remove last '\W{1,2}'
+        regex_str = format!("{}", &regex_str[0..regex_str.len() - non_word_or_number.to_string().len()]);
+        Ok(regex_str)
     }
 }
 
@@ -78,6 +172,7 @@ impl WrapperDatePattern {
             }
         }
         let date_pattern: DatePattern = DatePattern::new(transient_pattern);
+        date_pattern.is_consistent()?;
         Ok(date_pattern)
     }
 }

@@ -135,3 +135,4 @@ Resource "Text"{
 
 #### to_date
 - tries to return a DSP-Date according to data provided
+- only CE-Dates can be transformed, but BC-Dates could be added

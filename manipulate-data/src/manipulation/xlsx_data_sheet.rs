@@ -61,6 +61,8 @@ mod test {
     use parse_data::transform_parse::domain::header_value::HeaderValue;
     use parse_data::transform_parse::domain::methods_domain::behavior_type::BehaviorType;
     use parse_data::transform_parse::domain::methods_domain::combine_method::CombineMethod;
+    use parse_data::transform_parse::domain::methods_domain::date_bricks::{DateBricks, DateInfo, DateName};
+    use parse_data::transform_parse::domain::methods_domain::date_pattern::DatePattern;
     use parse_data::transform_parse::domain::methods_domain::date_type::DateType;
     use parse_data::transform_parse::domain::methods_domain::target_type::TargetType;
     use parse_data::transform_parse::domain::organized_by::OrganizedBy;
@@ -116,6 +118,16 @@ mod test {
             output: "hasDate".to_string(),
             input: HeaderValue::Name("hasValue".to_string()),
             date_type: DateType::Gregorian,
+            date_patterns: [DatePattern{
+                nr: 1,
+                first_date: None,
+                date: DateBricks{
+                    month_word: Option::from(false),
+                    day: Option::from(DateInfo { nr: 1, name: DateName::Day }),
+                    month: Option::from(DateInfo { nr: 2, name: DateName::Month }),
+                    year: Option::from(DateInfo { nr: 3, name: DateName::Year }),
+                },
+            }].to_vec(),
         };
         let transformations = Transformations{
             lower_methods: vec![lower_method],
@@ -184,6 +196,16 @@ mod test {
             output: "hasDate".to_string(),
             input: HeaderValue::Name("hasValue".to_string()),
             date_type: DateType::Gregorian,
+            date_patterns: [DatePattern{
+                nr: 1,
+                first_date: None,
+                date: DateBricks{
+                    month_word: Option::from(false),
+                    day: Option::from(DateInfo { nr: 1, name: DateName::Day }),
+                    month: Option::from(DateInfo { nr: 2, name: DateName::Month }),
+                    year: Option::from(DateInfo { nr: 3, name: DateName::Year }),
+                },
+            }].to_vec(),
         };
         let transformations = Transformations{
             lower_methods: vec![lower_method],
