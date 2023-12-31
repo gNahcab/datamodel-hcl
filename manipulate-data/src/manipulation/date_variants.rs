@@ -28,14 +28,9 @@ impl DateWrapper {
     fn date_period(&self, date_pattern: &DatePattern, date_type: &DateType) -> Result<Option<DatePeriod>, ParsingError> {
         let regex = date_pattern.to_regex()?;
         let caps = regex.captures(self.1.as_str());
-        println!("{:?}", regex);
-        println!("{:?}", caps);
-        println!("value: {:?}",self.1);
         if caps.is_none() {
             return Ok(None)
         }
-        println!("ok");
-        println!("caps: {:?}", caps);
         let mut transient = TransientDatePeriod::new(caps.unwrap(),date_pattern,date_type)?;
         transient.complete_dates()?;
         Ok(Some(DatePeriod::new(transient)))

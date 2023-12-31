@@ -32,6 +32,7 @@ pub fn manipulate_xlsx_data_sheets(data_sheets: Vec<DataSheet>, transform_xlsx: 
 
 fn transform_data_sheet(data_sheet: &DataSheet, transformations: &Transformations) -> Result<DataSheet, ParsingError> {
     let manipulated_data_sheet = ManipulatedDataSheetWrapper(data_sheet.copy(), transformations.to_owned()).to_manipulated_data_sheet()?;
+    println!("manipulated: {:?}", manipulated_data_sheet);
     Ok(DataSheet{
         tabular_data: vec![],
         height: 0,
@@ -70,7 +71,7 @@ mod test {
     use parse_data::transform_parse::domain::transform_type::TransformXLSX;
     use parse_data::transform_parse::domain::transformations::Transformations;
     use parse_data::xlsx_parse::data_sheet::DataSheet;
-    use crate::manipulation::xlsx_data_sheet::{add_assignments_xlsx, manipulate_xlsx_data_sheets, transform_data_sheet};
+    use crate::manipulation::xlsx_data_sheet::transform_data_sheet;
 
     #[test]
     fn test_check_transform() {
@@ -151,31 +152,32 @@ mod test {
     }
     #[test]
     fn test_perform_transform() {
+        let mut assignments: HashMap<String, HeaderValue> = HashMap::new();
+        assignments.insert("Label".to_string(), HeaderValue::Name("names_column".to_string()));
+        assignments.insert("all_dates".to_string(), HeaderValue::Name("my_dates_column".to_string()));
+        assignments.insert("hasExternalLink".to_string(), HeaderValue::Name("links_column".to_string()));
+        assignments.insert("ID".to_string(), HeaderValue::Name("all_ids".to_string()));
         let mut data_sheet: DataSheet = DataSheet{
             tabular_data: vec![],
             height: 5,
             width: 4,
             headers: vec![],
-            assignments: Default::default(),
+            assignments: assignments,
         };
-        let row:Vec<String> = vec!["names_column".to_string(), "values_column".to_string(), "links_column".to_string(), "all_ids".to_string()];
-        data_sheet.headers = row;
-        let row:Vec<String> = vec!["a".to_string(), "b".to_string(), "c".to_string(), "d".to_string()];
+        let headers: Vec<String> = vec!["names_column".to_string(),"my_dates_column".to_string(),"links_column".to_string(),"all_ids".to_string()];
+        data_sheet.headers = headers;
+
+        let row:Vec<String> = vec![ "BM K.3375".to_string(), "Deluge".to_string(), "Liberté, j'écris ton nom".to_string(),"Bashō, Horohoroto".to_string(),];
         data_sheet.tabular_data.push(row);
-        let row:Vec<String> = vec!["aa".to_string(), "bb".to_string(), "cc".to_string(), "dd".to_string()];
+        let row:Vec<String> = vec![ "700-600".to_string(), "1877-1879".to_string(), "1953".to_string(), "1688".to_string(),];
         data_sheet.tabular_data.push(row);
-        let row:Vec<String> = vec!["aaa".to_string(), "bbb".to_string(), "ccc".to_string(), "ddd".to_string()];
+        let row:Vec<String> = vec![ "inst_0".to_string(), "inst_1".to_string(), "inst_2".to_string(), "inst_3".to_string()];
         data_sheet.tabular_data.push(row);
-        let row:Vec<String> = vec!["aaaa".to_string(), "bbbb".to_string(), "cccc".to_string(), "dddd".to_string()];
+        let row:Vec<String> = vec![ "img_obj_0".to_string(), "img_obj_1".to_string(), "img_obj_2".to_string(), "img_obj_3".to_string()];
         data_sheet.tabular_data.push(row);
-        let mut assignments: HashMap<String, HeaderValue> = HashMap::new();
-        assignments.insert("Label".to_string(), HeaderValue::Name("names_column".to_string()));
-        assignments.insert("hasValue".to_string(), HeaderValue::Name("values_column".to_string()));
-        assignments.insert("hasExternalLink".to_string(), HeaderValue::Name("links_column".to_string()));
-        assignments.insert("ID".to_string(), HeaderValue::Name("all_ids".to_string()));
-        data_sheet.assignments = assignments;
+
         let lower_method = parse_data::transform_parse::domain::methods_domain::lower_upper_method::LowerMethod{ output: "hasLowerValue".to_string(), input: HeaderValue::Number(0) };
-        let upper_method = parse_data::transform_parse::domain::methods_domain::lower_upper_method::UpperMethod{ output: "hasUpperValue".to_string(), input: HeaderValue::Name("hasValue".to_string())  };
+        let upper_method = parse_data::transform_parse::domain::methods_domain::lower_upper_method::UpperMethod{ output: "hasUpperValue".to_string(), input: HeaderValue::Name("my_dates_column".to_string())  };
         let replace_method = parse_data::transform_parse::domain::methods_domain::replace_method::ReplaceMethod{
             output: "hasExternalLink2".to_string(),
             input: HeaderValue::Name("hasExternalLink".to_string()),
@@ -194,9 +196,10 @@ mod test {
         };
         let to_date_method = parse_data::transform_parse::domain::methods_domain::to_date_method::ToDateMethod{
             output: "hasDate".to_string(),
-            input: HeaderValue::Name("hasValue".to_string()),
+            input: HeaderValue::Name("all_dates".to_string()),
             date_type: DateType::Gregorian,
-            date_patterns: [DatePattern{
+            date_patterns: [
+                DatePattern{
                 nr: 1,
                 first_date: None,
                 date: DateBricks{
@@ -205,7 +208,17 @@ mod test {
                     month: Option::from(DateInfo { nr: 2, name: DateName::Month }),
                     year: Option::from(DateInfo { nr: 3, name: DateName::Year }),
                 },
-            }].to_vec(),
+            },   DatePattern{
+                    nr: 2,
+                    first_date: None,
+                    date: DateBricks{
+                        month_word: Option::from(false),
+                        day: None,
+                        month: None,
+                        year: Option::from(DateInfo { nr: 3, name: DateName::Year }),
+                    },
+                },
+            ].to_vec(),
         };
         let transformations = Transformations{
             lower_methods: vec![lower_method],

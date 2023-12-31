@@ -98,9 +98,9 @@ impl DatePattern {
                 DateName::Month => {
                     let month =
                         if self.date.month_word.unwrap() == true {
-                            r"(?P<month1>[A-Za-z]*)"
+                            r"(?P<month2>[A-Za-z]*)"
                         } else {
-                            r"(?P<month1>\d{1,2})"
+                            r"(?P<month2>\d{1,2})"
                         };
                     regex_str = format!(r"{}{}{}", regex_str, month, non_word_or_number);
                 }

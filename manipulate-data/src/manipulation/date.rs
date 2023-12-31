@@ -17,7 +17,7 @@ impl TransientDate {
             month,
             year,
             //todo: discern BC/CE
-            epoch: Option::from(Epoch::After),
+            epoch: Option::from(Epoch::CE),
         }
     }
 }
@@ -37,7 +37,7 @@ impl TransientDatePeriod {
             None
         };
         let month1 = if caps.name("month1").is_some() {
-            if date_pattern.first_date.unwrap().month_word.unwrap() == true {
+            if date_pattern.first_date.as_ref().unwrap().month_word.unwrap() == true {
                 let name = &caps["month1"].to_owned();
                 Option::from(parse_month_to_number(name)?)
             } else {
@@ -64,13 +64,13 @@ impl TransientDatePeriod {
                 let name = &caps["month2"].to_owned();
                 Option::from(parse_month_to_number(name)?)
             } else {
-                let number: &u8 = &caps["month1"].to_owned().parse::<u8>().unwrap();
+                let number: &u8 = &caps["month2"].to_owned().parse::<u8>().unwrap();
                 Option::from(number.to_owned())
             }
         } else {
             None
         };
-        // year2 is obligatory
+        // year2 is mandatory
         let year2 = &caps["year2"].parse::<usize>().unwrap();
         let year2 = Option::from(year2.to_owned());
         let mut date1 = Option::from(TransientDate::new(day1, month1, year1));
@@ -110,15 +110,63 @@ impl TransientDatePeriod {
     }
 }
 
-fn parse_month_to_number(name: &String) -> Result<u8, ParsingError> {
-    // parse Jan/Janu/Januar/January/Janv/Janvier etc. to 1  etc.pp.
-    todo!()
+fn parse_month_to_number(name: &String) -> Result<u8, ParsingError>  {
+        let januars = ["January", "Jan", "Jän", "Janv",  "Januar", "Janvier", "Gennaio", "Genn",];
+        let februarys = ["February", "Feb", "Februar", "Février", "Fevrier", "Févr", "Fevr", "Febbraio", "Febbr",];
+        let marchs = ["March", "Mar", "März", "Mars", "Marzo", "Mar",];
+        let aprils = ["April", "Apr", "Avril", "Aprile",];
+        let mays = ["May", "Mai", "Maggio", "Magg",];
+        let junes = ["June", "Juni", "Juin", "Giugno",];
+        let julys = ["July", "Juli", "Juillet", "Juil", "Luglio",];
+        let augusts = ["August","Aug", "Août", "Aout", "Agosto", "Ag",];
+        let septembers = ["September", "Sept", "Septembre", "Settembre", "Sett",];
+        let octobres = ["October", "Oct", "Octobre", "Ottobre", "Ott",];
+        let novembers = ["November", "Nov", "Novembre", "Novembre",];
+        let decembers = ["December", "Dec", "Dezember", "Dez", "Décembre", "Decembre", "Déc", "Dicembre",];
+
+    if januars.contains(&&**name) {
+        return Ok(1u8);
+    }
+    if februarys.contains(&&**name) {
+        return Ok(2u8);
+    }
+    if marchs.contains(&&**name) {
+        return Ok(3u8);
+    }
+    if aprils.contains(&&**name) {
+        return Ok(4u8);
+    }
+    if mays.contains(&&**name) {
+        return Ok(5u8);
+    }
+    if junes.contains(&&**name) {
+        return Ok(6u8);
+    }
+    if julys.contains(&&**name) {
+        return Ok(7u8);
+    }
+    if augusts.contains(&&**name) {
+        return Ok(8u8);
+    }
+    if septembers.contains(&&**name) {
+        return Ok(9u8);
+    }
+    if octobres.contains(&&**name) {
+        return Ok(10u8);
+    }
+    if novembers.contains(&&**name) {
+        return Ok(11u8);
+    }
+    if decembers.contains(&&**name) {
+        return Ok(12u8);
+    }
+    return Err(ParsingError::ValidationError(format!("couldn't find a matching month for '{:?}'. Either it is not a month or missing.", name)));
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Epoch {
-    Before,
-    After
+    BC,
+    CE
 }
 
 
@@ -129,6 +177,10 @@ pub struct Date{
     pub day: u8,
     pub epoch: Epoch,
 }
+
+impl Date {
+}
+
 
 #[derive(Debug, PartialEq)]
 pub struct DatePeriod {
@@ -148,20 +200,19 @@ impl DatePeriod {
     }
     pub(crate) fn to_string_date(&self) ->String {
         // calendar:epoch:yyyy-mm-dd:epoch:yyyy-mm-dd
+
         let calendar = &self.calendar_type;
-        let mut date:String = "".to_string();
-        if self.date1.is_some() {
-            let epoch = self.date1.as_ref().unwrap().epoch;
-            let day = self.date1.as_ref().unwrap().day;
-            let month = self.date1.as_ref().unwrap().month;
-            let year = self.date1.as_ref().unwrap().year;
-            date = format!("{:?}:{:?}:{:?}:{:?}:{:?}:", calendar, epoch, year, month, day);
-        }
-        let epoch = self.date2.epoch;
-        let day = self.date2.day;
-        let month = self.date2.month;
-        let year = self.date2.year;
-        date = format!("{:?}{:?}:{:?}:{:?}:{:?}:{:?}",date, calendar, epoch, year, month, day);
+        let epoch1 = self.date1.epoch;
+
+        let day1= Date::two_string(self.date1.day);
+        let month1 = Date::two_string(self.date1.month);
+        let year1 = Date::four_string(self.date1.year);
+
+        let epoch2 = self.date2.epoch;
+        let day2: String = Date::two_string(self.date2.day);
+        let month2: String = Date::two_string(self.date2.month);
+        let year2: String = Date::four_string(self.date2.year);
+        let date = format!("{:?}:{:?}:{}:{}:{}:{:?}:{}:{}:{}", calendar, epoch1, year1, month1, day1, epoch2, year2, month2, day2);
         date
     }
 }
@@ -173,6 +224,20 @@ impl Date {
             day: date.day.unwrap(),
             epoch: date.epoch.unwrap(),
         }
+    }
+    fn two_string(number: u8) -> String {
+        let mut parsed = number.to_string();
+        while parsed.len() < 2 {
+            parsed.insert(0, '0');
+        }
+        return parsed
+    }
+    fn four_string(number: usize) -> String {
+        let mut parsed = number.to_string();
+        while parsed.len() < 4 {
+            parsed.insert(0, '0');
+        }
+        return parsed
     }
 }
 #[cfg(test)]

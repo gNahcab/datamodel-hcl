@@ -24,13 +24,13 @@ impl ManipulatedDataSheetWrapper {
         let mut any_success: bool = true;
         let mut all_methods: Vec<Method> = self.1.methods();
 
-        'outer: while any_success  {
-            any_success != any_success;
-            for counter in 0.. all_methods.len() {
+        while any_success  {
+            any_success = !any_success;
+            for counter in 0.. all_methods.len(){
                 let method = match all_methods.get(counter) {
                     None => {
-                        // all_methods is empty
-                        break 'outer
+                        // counter > all_methods.len()
+                        break
                     }
                     Some(method) => {method}
                 };
@@ -55,14 +55,12 @@ impl ManipulatedDataSheetWrapper {
                     }
                     Method::LowerMethod(method) => {
                         if transient_data_sheet.add_lower(method)? {
-                            println!("lower: {:?}", &method);
                             any_success = true;
                             all_methods.remove(counter);
                         }
                     }
                     Method::UpperMethod(method) => {
                         if transient_data_sheet.add_upper(method)? {
-                            println!("upper: {:?}", &method);
                             any_success = true;
                             all_methods.remove(counter);
                         }
@@ -269,13 +267,19 @@ impl TransientDataSheet {
 
 
 
+#[derive(Debug)]
 pub struct ManipulatedDataSheet {
-
+    pub headers_to_vec_nr: HashMap<String, usize>,
+    pub data: Vec<Vec<String>>,
+    pub width : usize,
+    pub height: usize,
 }
 
 impl ManipulatedDataSheet {
     fn new(transient_manipulated_data_sheet: TransientDataSheet) -> ManipulatedDataSheet {
-        ManipulatedDataSheet{}
+        // manipulated data sheet only needs String-Headers which could match with entries in data model
+        // assign headers to vectors
+        todo!()
     }
 }
 #[cfg(test)]
