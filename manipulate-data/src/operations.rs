@@ -6,7 +6,6 @@ use crate::manipulation;
 use crate::manipulation::manipulate::{manipulate_csv_data, manipulate_xlsx_data};
 
 pub fn manipulate_data<P: AsRef<Path>>(data_path: P, data_model_hcl_path: P ,transform_hcl_path: P) -> Result<(), ParsingError> {
-    //todo: should return the manipulated dataframe as polars dataframe or something
     let project_model = parse_data::operations::read_datamodel(data_model_hcl_path)?;
     let transform_hcl: parse_data::transform_parse::domain::transform_hcl::TransformHCL = parse_data::operations::read_transform_hcl(transform_hcl_path)?;
     let data_sheets = match transform_hcl.transform_type {
@@ -17,6 +16,7 @@ pub fn manipulate_data<P: AsRef<Path>>(data_path: P, data_model_hcl_path: P ,tra
             manipulate_csv_data(transform_csv, data_path)?
         }
     };
+    let final_sheets: () = manipulation::shape_data::shape_with_data_model(data_sheets, project_model)?;
     Ok(())
 }
 #[cfg(test)]

@@ -15,14 +15,18 @@ use parse_data::transform_parse::domain::transformations::Transformations;
 use parse_data::xlsx_parse::data_sheet::DataSheet;
 use crate::manipulation::date_variants::DateWrapper;
 
-pub struct ManipulatedDataSheetWrapper (pub(crate) DataSheet, pub(crate) Transformations);
+pub struct ManipulatedDataSheetWrapper (pub(crate) DataSheet, pub(crate) Option<Transformations>);
 
 impl ManipulatedDataSheetWrapper {
-    pub fn to_manipulated_data_sheet(&self) -> Result<ManipulatedDataSheet, ParsingError> {
+    pub fn to_copied_sheet(&self) -> Result<ManipulatedDataSheet, ParsingError> {
+        let transient_data_sheet: TransientDataSheet = TransientDataSheet::new(self.0.copy());
+        let manipulated_data_sheet: ManipulatedDataSheet = ManipulatedDataSheet::new(transient_data_sheet);
+        Ok(manipulated_data_sheet)
+    }
+    fn to_manipulated_sheet(&self) -> Result<ManipulatedDataSheet, ParsingError> {
         let mut transient_data_sheet: TransientDataSheet = TransientDataSheet::new(self.0.copy());
-
         let mut any_success: bool = true;
-        let mut all_methods: Vec<Method> = self.1.methods();
+        let mut all_methods: Vec<Method> = self.1.as_ref().unwrap().methods();
 
         while any_success  {
             any_success = !any_success;
@@ -73,15 +77,54 @@ impl ManipulatedDataSheetWrapper {
         }
         let manipulated_data_sheet: ManipulatedDataSheet = ManipulatedDataSheet::new(transient_data_sheet);
         Ok(manipulated_data_sheet)
+    }
+    pub fn to_manipulated_data_sheet(&self) -> Result<ManipulatedDataSheet, ParsingError> {
+        match &self.1 {
+            None => {
+                self.to_copied_sheet()
+            }
+            Some(_) => {
+                self.to_manipulated_sheet()
+            }
+        }
 }
 }
+
+
 struct TransientDataSheet {
     pub tabular_data: Vec<Vec<String>>,
     pub width: usize,
     pub height: usize,
     pub headers: Vec<String>,
     pub assignments: HashMap<String, HeaderValue>,
-    pub new_assignments: HashMap<String, HeaderValue>
+}
+
+impl TransientDataSheet {
+    pub(crate) fn update_headers_with_assignments(&self) -> Vec<String> {
+        // update headers with assignments, replace the names of columns by the names defined in assignments
+        // e.g.
+        // assignments: 'all_dates": Name("my_dates_column")'
+        // headers: "my_dates_column" should be replaced by "all_dates"
+        let mut reverse_hash_map: HashMap<&String, &String> = HashMap::new();
+
+        for (new_value, old_value) in self.assignments.iter() {
+            let old_name = match old_value {
+                HeaderValue::Name(name) => {name}
+                HeaderValue::Number(_) => {
+                    continue
+                }
+            };
+            reverse_hash_map.insert(old_name, new_value);
+        }
+        let new_headers: Vec<String> = self.headers.iter()
+            .map(|value|
+            match reverse_hash_map.get(value)  {
+                None => {value.to_owned().to_owned()}
+                Some(new_value) => {new_value.to_owned().to_owned()}
+            }
+        ).collect();
+        return new_headers;
+    }
 }
 
 
@@ -93,7 +136,6 @@ impl TransientDataSheet {
             height: data_sheet.height,
             headers: data_sheet.headers,
             assignments: data_sheet.assignments,
-            new_assignments: Default::default(),
         }
     }
     fn get_nr_from_headers(&self, name: &String) -> isize {
@@ -269,17 +311,21 @@ impl TransientDataSheet {
 
 #[derive(Debug)]
 pub struct ManipulatedDataSheet {
-    pub headers_to_vec_nr: HashMap<String, usize>,
+    pub headers: Vec<String>,
     pub data: Vec<Vec<String>>,
     pub width : usize,
     pub height: usize,
 }
 
 impl ManipulatedDataSheet {
-    fn new(transient_manipulated_data_sheet: TransientDataSheet) -> ManipulatedDataSheet {
-        // manipulated data sheet only needs String-Headers which could match with entries in data model
-        // assign headers to vectors
-        todo!()
+    fn new(mut transient_manipulated_data_sheet: TransientDataSheet) -> ManipulatedDataSheet {
+        let new_headers = transient_manipulated_data_sheet.update_headers_with_assignments();
+        ManipulatedDataSheet {
+            headers: new_headers,
+            data: transient_manipulated_data_sheet.tabular_data,
+            width: transient_manipulated_data_sheet.width,
+            height: transient_manipulated_data_sheet.height,
+        }
     }
 }
 #[cfg(test)]

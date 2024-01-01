@@ -3,7 +3,7 @@ use parse_data::transform_parse::domain::sheet_info::SheetInfo;
 use parse_data::transform_parse::domain::transform_type::TransformXLSX;
 use parse_data::transform_parse::domain::transformations::Transformations;
 use parse_data::xlsx_parse::data_sheet::DataSheet;
-use crate::manipulation::manipulated_data_sheet::ManipulatedDataSheetWrapper;
+use crate::manipulation::manipulated_data_sheet::{ManipulatedDataSheet, ManipulatedDataSheetWrapper};
 
 
 pub fn check_consistency(data_sheets: &Vec<DataSheet>, transform_xlsx: &TransformXLSX) -> Result<(), ParsingError> {
@@ -14,32 +14,18 @@ pub fn check_consistency(data_sheets: &Vec<DataSheet>, transform_xlsx: &Transfor
     }
     Ok(())
 }
-pub fn manipulate_xlsx_data_sheets(data_sheets: Vec<DataSheet>, transform_xlsx: &TransformXLSX) -> Result<(), ParsingError> {
-    let mut new_data_sheets: Vec<DataSheet> = vec![];
+pub fn manipulate_xlsx_data_sheets(data_sheets: Vec<DataSheet>, transform_xlsx: &TransformXLSX) -> Result<Vec<ManipulatedDataSheet>, ParsingError> {
+    let mut new_data_sheets: Vec<ManipulatedDataSheet> = vec![];
     for (i, data_sheet) in data_sheets.iter().enumerate() {
         let sheet_info: &SheetInfo = transform_xlsx.worksheets.get(i).unwrap();
-        if sheet_info.transformations.is_none() {
-            //clone old one and continue
-            let new_data_sheet = data_sheet.copy();
-            new_data_sheets.push(new_data_sheet);
-            continue
-        }
-        let new_data_sheet = transform_data_sheet(data_sheet, &sheet_info.transformations.as_ref().unwrap())?;
+        let new_data_sheet = transform_data_sheet(data_sheet, &sheet_info.transformations)?;
         new_data_sheets.push(new_data_sheet);
     }
-    Ok(())
+    Ok(new_data_sheets)
 }
 
-fn transform_data_sheet(data_sheet: &DataSheet, transformations: &Transformations) -> Result<DataSheet, ParsingError> {
-    let manipulated_data_sheet = ManipulatedDataSheetWrapper(data_sheet.copy(), transformations.to_owned()).to_manipulated_data_sheet()?;
-    println!("manipulated: {:?}", manipulated_data_sheet);
-    Ok(DataSheet{
-        tabular_data: vec![],
-        height: 0,
-        width: 0,
-        headers: vec![],
-        assignments: Default::default(),
-    })
+fn transform_data_sheet(data_sheet: &DataSheet, transformations: &Option<Transformations>) -> Result<ManipulatedDataSheet, ParsingError> {
+                    ManipulatedDataSheetWrapper(data_sheet.copy(), transformations.to_owned()).to_manipulated_data_sheet()
 }
 
 pub(crate) fn add_assignments_xlsx(data_sheets: Vec<DataSheet>, transform_xlsx: &TransformXLSX) -> Result<Vec<DataSheet>, ParsingError> {
@@ -227,7 +213,7 @@ mod test {
             replace_methods: vec![replace_method],
             to_date_methods: vec![to_date_method],
         };
-        let result = transform_data_sheet(&data_sheet, &transformations);
+        let result = transform_data_sheet(&data_sheet, &Option::from(transformations));
         println!("result {:?}", result);
         assert!(result.is_ok());
     }
