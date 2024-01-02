@@ -66,16 +66,6 @@ impl TransformHCLBuilder {
             if sheet_info.headers_exist == true {
                 continue
             }
-            if sheet_info.resource_row.is_some() == true {
-                match &sheet_info.resource_row.as_ref().unwrap() {
-                    HeaderValue::Name(value) => {
-                        return Err(ParsingError::ValidationError(format!("resource_row in sheet-nr '{:?}' contains a string as header '{:?}', but 'headers' is set to false.", sheet_info.sheet_nr, value)));
-                    }
-                    HeaderValue::Number(_) => {
-                        //ok..
-                    }
-                }
-            }
             // check that if headers_exist is false no assignments to a header were made
             let string_headers: Vec<&String> = sheet_info.assignments.assignments_to_header_value.iter().filter_map(|(assignment, header_value)| match header_value {
                 HeaderValue::Name(name) => Some(name),

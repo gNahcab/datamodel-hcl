@@ -67,7 +67,7 @@ impl DateBricks {
             return Err(ParsingError::ValidationError(format!("found a duplicate for month in 'to-date'-pattern")));
         }
         let nr = self.number(month)?;
-        self.day = Option::from(DateInfo::new(nr, DateName::Month));
+        self.month = Option::from(DateInfo::new(nr, DateName::Month));
         Ok(())
     }
     fn add_month_word(&mut self, month_word: bool) -> Result<(), ParsingError> {
@@ -82,7 +82,7 @@ impl DateBricks {
             return Err(ParsingError::ValidationError(format!("found a duplicate for year in 'to-date'-pattern")));
         }
         let nr = self.number(year)?;
-        self.day = Option::from(DateInfo::new(nr, DateName::Year));
+        self.year = Option::from(DateInfo::new(nr, DateName::Year));
         Ok(())
     }
     fn check_month_word(&mut self) {

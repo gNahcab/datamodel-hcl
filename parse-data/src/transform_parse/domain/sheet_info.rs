@@ -9,13 +9,13 @@ use crate::transform_parse::domain::transformations::{Transformations, Transform
 
 #[derive(Debug)]
 pub struct SheetInfoWrapper (pub(crate) Block);
+
 #[derive(Debug)]
 struct TransientStructureSheetInfo {
     sheet_nr: usize,
     structured_by: Option<String>,
     headers_exist: Option<bool>,
     resource: Option<String>,
-    resource_row: Option<HeaderValue>,
     assignments: Option<Assignments>,
     transformations: Option<Transformations>,
 }
@@ -41,9 +41,6 @@ impl SheetInfoWrapper {
                 },
                 "resource" => {
                     transient_structure.add_resource(attribute.expr.to_string_2()?)?;
-                }
-                "resource_row" => {
-                    transient_structure.add_resource_row(&attribute.expr)?;
                 }
                 "headers" => {
                     transient_structure.add_headers_exist(attribute.expr.to_bool()?)?
@@ -82,27 +79,10 @@ impl TransientStructureSheetInfo {
             structured_by: None,
             headers_exist: None,
             resource: None,
-            resource_row: None,
             assignments: None,
             transformations: None,
         }
     }
-    pub(crate) fn add_resource_row(&mut self, resource_row: &Expression) -> Result<(), ParsingError> {
-        if self.resource_row.is_some() {
-            return Err(ParsingError::ValidationError(format!("error in sheet: found duplicate for 'resource_row' in: '{:?}'", self)));
-        }
-        match resource_row {
-            Expression::Number(number) => {
-                self.resource_row = Option::from(HeaderValue::Number(number.as_u8()?));
-            }
-            Expression::String(value) => {
-               self.resource_row = Option::from(HeaderValue::Name(value.to_owned()));
-            }
-            _ => return Err(ParsingError::ValidationError(format!("resource_row: '{:?}' has the wrong format (only String or Number allowed) in sheet-nr '{:?}'", resource_row, self.sheet_nr)))
-        };
-        Ok(())
-    }
-
     pub(crate) fn add_headers_exist(&mut self, headers_exist: bool) -> Result<(), ParsingError> {
         if self.headers_exist.is_some() {
             return Err(ParsingError::ValidationError(format!("only one declaration of 'headers_exist' allowed, second 'headers_exist' found in '{:?}'", self)));
@@ -148,11 +128,8 @@ impl TransientStructureSheetInfo {
         if self.headers_exist.is_none() {
             return Err(ParsingError::ValidationError(format!("Sheet should contain 'headers_exist'-attribute but it doesn't: '{:?}'", self)));
         }
-        if self.resource.is_none() && self.resource_row.is_none() {
-            return Err(ParsingError::ValidationError(format!("Sheet should contain 'resource'-attribute or 'resource_row'-attribute but it doesn't: '{:?}'", self)));
-        }
-        if self.resource.is_some() && self.resource_row.is_some() {
-            return Err(ParsingError::ValidationError(format!("Sheet should contain only 'resource'-attribute or 'resource_row'-attribute but it contains both: '{:?}'", self)));
+        if self.resource.is_none() {
+            return Err(ParsingError::ValidationError(format!("Sheet should contain 'resource'-attribute but it doesn't: '{:?}'", self)));
         }
         if self.assignments.is_none() {
             return Err(ParsingError::ValidationError(format!("Sheet should contain 'assignments'-block but it doesn't: '{:?}'", self)));
@@ -167,8 +144,7 @@ pub struct SheetInfo {
     pub sheet_nr: usize,
     pub structured_by: OrganizedBy,
     pub headers_exist: bool,
-    pub resource: Option<String>,
-    pub resource_row: Option<HeaderValue>,
+    pub resource: String,
     pub assignments: Assignments,
     pub transformations: Option<Transformations>,
 }
@@ -180,8 +156,7 @@ impl SheetInfo {
             sheet_nr: transient_structure.sheet_nr,
             structured_by,
             headers_exist: transient_structure.headers_exist.unwrap(),
-            resource:transient_structure.resource,
-            resource_row: transient_structure.resource_row,
+            resource:transient_structure.resource.unwrap(),
             assignments: transient_structure.assignments.unwrap(),
             transformations: transient_structure.transformations,
         })

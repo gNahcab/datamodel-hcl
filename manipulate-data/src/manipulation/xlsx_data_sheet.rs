@@ -18,13 +18,13 @@ pub fn manipulate_xlsx_data_sheets(data_sheets: Vec<DataSheet>, transform_xlsx: 
     let mut new_data_sheets: Vec<ManipulatedDataSheet> = vec![];
     for (i, data_sheet) in data_sheets.iter().enumerate() {
         let sheet_info: &SheetInfo = transform_xlsx.worksheets.get(i).unwrap();
-        let new_data_sheet = transform_data_sheet(data_sheet, &sheet_info.transformations)?;
+        let new_data_sheet = create_manipulated_data_sheet(data_sheet, &sheet_info.transformations)?;
         new_data_sheets.push(new_data_sheet);
     }
     Ok(new_data_sheets)
 }
 
-fn transform_data_sheet(data_sheet: &DataSheet, transformations: &Option<Transformations>) -> Result<ManipulatedDataSheet, ParsingError> {
+fn create_manipulated_data_sheet(data_sheet: &DataSheet, transformations: &Option<Transformations>) -> Result<ManipulatedDataSheet, ParsingError> {
                     ManipulatedDataSheetWrapper(data_sheet.copy(), transformations.to_owned()).to_manipulated_data_sheet()
 }
 
@@ -57,12 +57,13 @@ mod test {
     use parse_data::transform_parse::domain::transform_type::TransformXLSX;
     use parse_data::transform_parse::domain::transformations::Transformations;
     use parse_data::xlsx_parse::data_sheet::DataSheet;
-    use crate::manipulation::xlsx_data_sheet::transform_data_sheet;
+    use crate::manipulation::xlsx_data_sheet::create_manipulated_data_sheet;
 
     #[test]
     fn test_check_transform() {
         let mut data_sheet: DataSheet = DataSheet{
             tabular_data: vec![],
+            resource: "Image2D".to_owned(),
             height: 5,
             width: 4,
             headers: vec![],
@@ -127,8 +128,7 @@ mod test {
                 sheet_nr: 1,
                 structured_by: OrganizedBy::ROWOrganized,
                 headers_exist: true,
-                resource: None,
-                resource_row: Option::from(HeaderValue::Number(2)),
+                resource: "Image2D".to_owned(),
                 assignments: Assignments {assignments_to_header_value:assignments},
                 transformations: Option::from(transformations),
             };
@@ -145,6 +145,7 @@ mod test {
         assignments.insert("ID".to_string(), HeaderValue::Name("all_ids".to_string()));
         let mut data_sheet: DataSheet = DataSheet{
             tabular_data: vec![],
+            resource: "Image2D".to_owned(),
             height: 5,
             width: 4,
             headers: vec![],
@@ -213,7 +214,7 @@ mod test {
             replace_methods: vec![replace_method],
             to_date_methods: vec![to_date_method],
         };
-        let result = transform_data_sheet(&data_sheet, &Option::from(transformations));
+        let result = create_manipulated_data_sheet(&data_sheet, &Option::from(transformations));
         println!("result {:?}", result);
         assert!(result.is_ok());
     }
@@ -221,6 +222,7 @@ mod test {
     fn test_check_assignments_xlsx_numbers() {
         let mut data_sheet: DataSheet = DataSheet{
             tabular_data: vec![],
+            resource: "Image2D".to_owned(),
             height: 5,
             width: 4,
             headers: vec![],
@@ -247,8 +249,7 @@ mod test {
                 sheet_nr: 1,
                 structured_by: OrganizedBy::ROWOrganized,
                 headers_exist: false,
-                resource: None,
-                resource_row: None,
+                resource: "Image2D".to_string(),
                 assignments: Assignments {assignments_to_header_value:assignments},
                 transformations: None,
             }],
@@ -261,6 +262,7 @@ mod test {
     fn test_check_assignments_xlsx_headers() {
         let mut data_sheet: DataSheet = DataSheet{
             tabular_data: vec![],
+            resource: "Image2D".to_owned(),
             height: 5,
             width: 4,
             headers: vec![],
@@ -289,8 +291,7 @@ mod test {
                 sheet_nr: 1,
                 structured_by: OrganizedBy::ROWOrganized,
                 headers_exist: true,
-                resource: None,
-                resource_row: Option::from(HeaderValue::Number(2)),
+                resource: "Image2D".to_owned(),
                 assignments: Assignments {assignments_to_header_value:assignments},
                 transformations: None,
             }],

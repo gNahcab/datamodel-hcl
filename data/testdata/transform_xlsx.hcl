@@ -8,7 +8,6 @@ sheet "1" {
     id = "ID"
     not_lowered = 1
     hasName = 2
-    hasIdentifier = 3
     hasChildren = 4
     hasExternalLink = 5
   }
@@ -17,15 +16,16 @@ sheet "1" {
     lower "label" {
       input = "not_lowered"
     }
-    combine "label"{
-      input = [0, "lower"]
+    combine "label_2"{
+      input = [0, "not_lowered"]
       separator = "_"
       prefix = "BIZ_"
       suffix = "_ZIP"
     }
     replace "hasIdentifier" {
-      input = 1
-      replace = ["DICT", "DICTIONARY"]
+      input = "id"
+      old = "xyz_"
+      new = ""
       condition {
         behavior = "lazy"
         target = "part"

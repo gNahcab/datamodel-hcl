@@ -2,8 +2,10 @@ use std::collections::HashMap;
 use std::path::Path;
 use calamine::{DataType, Range};
 use polars::export::num::ToPrimitive;
+use crate::datamodel_parse::domain::resource::Resource;
 use crate::errors::ParsingError;
 use crate::transform_parse::domain::header_value::HeaderValue;
+use crate::transform_parse::domain::methods_domain::date_bricks::DateInfo;
 use crate::transform_parse::domain::organized_by::OrganizedBy;
 use crate::transform_parse::domain::sheet_info::SheetInfo;
 use crate::transform_parse::domain::transform_type::TransformXLSX;
@@ -15,18 +17,21 @@ impl DataSheetWrapper {
     pub fn to_data_sheet(&self) -> Result<DataSheet, ParsingError> {
         match self.1.structured_by {
             OrganizedBy::ROWOrganized => {
+                println!("ROW");
                 self.datasheet_by_row()
             }
             OrganizedBy::COLOrganized => {
+                println!("COL");
                 self.datasheet_by_col()
             }
         }
     }
     fn datasheet_by_row(&self) -> Result<DataSheet, ParsingError> {
-        let mut transient_data_sheet: TransientDataSheet = TransientDataSheet::new();
+        let mut transient_data_sheet: TransientDataSheet = TransientDataSheet::new(&self.1.resource);
         transient_data_sheet.add_width(self.0.1.width());
         transient_data_sheet.add_height(self.0.1.height());
         let mut worksheet_iterator = self.0.1.rows();
+        let mut start: usize = 0;
         if self.1.headers_exist == true {
             let first_row = worksheet_iterator.next();
             let first_row = match first_row {
@@ -35,45 +40,60 @@ impl DataSheetWrapper {
                 }
                 Some(row) => {row}
             };
-            let row_vec: Vec<String> = first_row.iter().map(|entry|(entry.to_string())).collect();
-            transient_data_sheet.headers = Option::from(row_vec);
+            let headers: Vec<String> = first_row.iter().map(|entry|(entry.to_string())).collect();
+            transient_data_sheet.add_headers(headers);
+            start = 1;
+        }
+        let mut data: Vec<Vec<String>> = Vec::with_capacity(self.0.1.width() - start);
+        for _ in start..worksheet_iterator.len() {
+            data.push(vec![]);
         }
         for row in worksheet_iterator {
             let row_vec: Vec<String> = row.iter().map(|entry|(entry.to_string())).collect();
-            transient_data_sheet.tabular_data.push(row_vec);
+            row_vec.iter().enumerate().for_each(|(i, value)|data[i].push(value.to_owned()));
         }
+        transient_data_sheet.add_tabular_data(data);
         let data_sheet = DataSheet::new(transient_data_sheet);
         Ok(data_sheet)
     }
     fn datasheet_by_col(&self) -> Result<DataSheet, ParsingError> {
         // returns a datasheet that is reorganised by column, this is necessary because the importer imports the data by row
-        let mut transient_data_sheet: TransientDataSheet= TransientDataSheet::new();
+        let mut transient_data_sheet: TransientDataSheet= TransientDataSheet::new(&self.1.resource);
         transient_data_sheet.add_width(self.0.1.height());
         transient_data_sheet.add_height(self.0.1.width());
-        let mut start = 1;
+        let mut worksheet_iterator = self.0.1.rows();
+        let mut start = 0;
         if self.1.headers_exist {
-            let first_column: Vec<String> = self.0.1.rows().map(|entry| entry.iter().take(1).map(|entry| entry.to_string()).collect()).collect();
-            transient_data_sheet.add_headers(first_column);
-            start = 2;
+             let headers: Vec<String> = self.0.1.cells().into_iter().filter(|(i, j, value)| j == &0usize).map(|(i,j, value)| value.to_string()).collect();
+            transient_data_sheet.add_headers(headers);
+            start = 1;
         }
-        for i in start..self.0.1.width() {
-            let column: Vec<String> = self.0.1.rows().map(|entry|entry.iter().take(i).map(|entry| entry.to_string()).collect()).collect();
-            transient_data_sheet.tabular_data.push(column);
+        let mut data: Vec<Vec<String>> = vec![];
+        for  row in worksheet_iterator {
+            let row_vec: Vec<String> = row.iter().skip(start).map(|entry|entry.to_string()).collect();
+            data.push(row_vec);
         }
+        transient_data_sheet.add_tabular_data(data);
+
         let data_sheet = DataSheet::new(transient_data_sheet);
         Ok(data_sheet)
     }
 }
 pub struct TransientDataSheet {
     pub tabular_data: Vec<Vec<String>>,
+    pub resource: String,
     pub height: usize,
     pub width: usize,
     pub headers: Option<Vec<String>>,
     pub assignments: HashMap<String, HeaderValue>,
 }
+
 impl TransientDataSheet {
-    pub fn new() -> TransientDataSheet {
-        TransientDataSheet { tabular_data: vec![], height: 0, width: 0, headers: None, assignments: Default::default() }
+}
+
+impl TransientDataSheet {
+    pub fn new(resource: &String) -> TransientDataSheet {
+        TransientDataSheet { tabular_data: vec![], resource: resource.to_owned(), height: 0, width: 0, headers: None, assignments: Default::default() }
     }
     fn add_headers(&mut self, first_column: Vec<String>) {
         self.headers = Option::from(first_column);
@@ -84,10 +104,14 @@ impl TransientDataSheet {
     pub fn add_width(&mut self, width: usize) {
         self.width = width;
     }
+    pub(crate) fn add_tabular_data(&mut self, data: Vec<Vec<String>>) {
+        self.tabular_data = data;
+    }
 }
 #[derive(Debug)]
 pub struct DataSheet {
     pub tabular_data: Vec<Vec<String>>,
+    pub resource: String,
     pub height: usize,
     pub width: usize,
     pub headers: Vec<String>,
@@ -103,6 +127,7 @@ impl DataSheet {
         };
         DataSheet{
             tabular_data: transient_data_sheet.tabular_data,
+            resource: transient_data_sheet.resource,
             height: transient_data_sheet.height,
             width: transient_data_sheet.width,
             headers,
@@ -112,6 +137,7 @@ impl DataSheet {
     pub fn copy(&self) -> DataSheet {
         DataSheet {
             tabular_data: self.tabular_data.clone(),
+            resource: self.resource.clone(),
             height: self.height,
             width: self.width,
             headers: self.headers.clone(),
@@ -151,25 +177,6 @@ impl DataSheet {
     }
     pub fn check_assignments_from_sheet_info(&self, sheet_info: &SheetInfo) -> Result<(), ParsingError> {
         self.assignments_correct(sheet_info)?;
-        self.resource_row_correct(sheet_info)?;
-        Ok(())
-    }
-    fn resource_row_correct(&self, sheet_info: &SheetInfo) -> Result<(), ParsingError> {
-        if sheet_info.resource_row.is_some() {
-            match sheet_info.resource_row.as_ref().unwrap() {
-                HeaderValue::Name(name) => {
-                    // self.headers should always be Some, never None here (checked previously)
-                    if !self.headers.contains(name) {
-                        return Err(ParsingError::ValidationError(format!("value of 'resource_row' '{:?}' in sheet-nr '{:?}' doesn't exist in associated spreadsheet",name, sheet_info.sheet_nr)))
-                    }
-                }
-                HeaderValue::Number(number) => {
-                   if self.width < *number as usize {
-                       return Err(ParsingError::ValidationError(format!("number of 'resource_row' '{:?}' in sheet-nr '{:?}' doesn't exist in associated spreadsheet, because spreadsheet doesn't have that many columns/rows.",number, sheet_info.sheet_nr)))
-                   }
-                }
-            }
-        }
         Ok(())
     }
     pub fn check_transform_form_sheet_info(&self, sheet_info: &SheetInfo) -> Result<(), ParsingError> {
@@ -181,7 +188,7 @@ impl DataSheet {
         // 2. do all numbers mentioned in transform exist in spreadsheet?
         let numbers_too_great: Vec<&u8> = input_values.iter().flat_map(|header|match header {
             HeaderValue::Name(name) => {None}
-            HeaderValue::Number(number) => {if *number as usize > self.width {
+            HeaderValue::Number(number) => {if *number as usize >= self.width {
                 Some(number)
             } else {
                 None

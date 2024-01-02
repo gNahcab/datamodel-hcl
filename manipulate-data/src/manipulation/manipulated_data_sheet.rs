@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use regex::{Regex, RegexBuilder};
+use regex::Regex;
 use polars::export::arrow::types::Index;
 use polars::export::num::ToPrimitive;
 use parse_data::errors::ParsingError;
@@ -18,13 +18,11 @@ use crate::manipulation::date_variants::DateWrapper;
 pub struct ManipulatedDataSheetWrapper (pub(crate) DataSheet, pub(crate) Option<Transformations>);
 
 impl ManipulatedDataSheetWrapper {
-    pub fn to_copied_sheet(&self) -> Result<ManipulatedDataSheet, ParsingError> {
-        let transient_data_sheet: TransientDataSheet = TransientDataSheet::new(self.0.copy());
+    pub fn to_copied_sheet(&self, transient_data_sheet: TransientManipulatedDataSheet) -> Result<ManipulatedDataSheet, ParsingError> {
         let manipulated_data_sheet: ManipulatedDataSheet = ManipulatedDataSheet::new(transient_data_sheet);
         Ok(manipulated_data_sheet)
     }
-    fn to_manipulated_sheet(&self) -> Result<ManipulatedDataSheet, ParsingError> {
-        let mut transient_data_sheet: TransientDataSheet = TransientDataSheet::new(self.0.copy());
+    fn to_manipulated_sheet(&self, mut transient_data_sheet: TransientManipulatedDataSheet) -> Result<ManipulatedDataSheet, ParsingError> {
         let mut any_success: bool = true;
         let mut all_methods: Vec<Method> = self.1.as_ref().unwrap().methods();
 
@@ -79,29 +77,50 @@ impl ManipulatedDataSheetWrapper {
         Ok(manipulated_data_sheet)
     }
     pub fn to_manipulated_data_sheet(&self) -> Result<ManipulatedDataSheet, ParsingError> {
+        let transient_data_sheet: TransientManipulatedDataSheet = TransientManipulatedDataSheet::new(self.0.copy());
         match &self.1 {
             None => {
-                self.to_copied_sheet()
+                self.to_copied_sheet(transient_data_sheet)
             }
             Some(_) => {
-                self.to_manipulated_sheet()
+                self.to_manipulated_sheet(transient_data_sheet)
             }
         }
 }
 }
 
 
-struct TransientDataSheet {
+pub struct TransientManipulatedDataSheet {
     pub tabular_data: Vec<Vec<String>>,
     pub width: usize,
     pub height: usize,
+    pub resource: String,
     pub headers: Vec<String>,
+    pub header_to_vec_nr:HashMap<String, usize>,
     pub assignments: HashMap<String, HeaderValue>,
 }
+impl TransientManipulatedDataSheet {
+    fn new(data_sheet: DataSheet) -> TransientManipulatedDataSheet {
 
-impl TransientDataSheet {
-    pub(crate) fn update_headers_with_assignments(&self) -> Vec<String> {
-        // update headers with assignments, replace the names of columns by the names defined in assignments
+        TransientManipulatedDataSheet {
+            tabular_data: data_sheet.tabular_data,
+            width: data_sheet.width,
+            height: data_sheet.height,
+            headers: data_sheet.headers,
+            header_to_vec_nr: Default::default(),
+            assignments: data_sheet.assignments,
+            resource: data_sheet.resource,
+        }
+    }
+    fn get_nr_from_headers(&self, name: &String) -> isize {
+        for (i, header) in self.headers.iter().enumerate() {
+            if header != name {continue}
+            return i.to_isize().unwrap();
+        }
+        -1
+    }
+    pub(crate) fn replace_old_headers(&self) -> Vec<String> {
+        // replace the names of columns by the names defined in assignments
         // e.g.
         // assignments: 'all_dates": Name("my_dates_column")'
         // headers: "my_dates_column" should be replaced by "all_dates"
@@ -118,32 +137,12 @@ impl TransientDataSheet {
         }
         let new_headers: Vec<String> = self.headers.iter()
             .map(|value|
-            match reverse_hash_map.get(value)  {
-                None => {value.to_owned().to_owned()}
-                Some(new_value) => {new_value.to_owned().to_owned()}
-            }
-        ).collect();
+                match reverse_hash_map.get(value)  {
+                    None => {value.to_owned().to_owned()}
+                    Some(new_value) => {new_value.to_owned().to_owned()}
+                }
+            ).collect();
         return new_headers;
-    }
-}
-
-
-impl TransientDataSheet {
-    fn new(data_sheet: DataSheet) -> TransientDataSheet {
-        TransientDataSheet {
-            tabular_data: data_sheet.tabular_data,
-            width: data_sheet.width,
-            height: data_sheet.height,
-            headers: data_sheet.headers,
-            assignments: data_sheet.assignments,
-        }
-    }
-    fn get_nr_from_headers(&self, name: &String) -> isize {
-        for (i, header) in self.headers.iter().enumerate() {
-            if header != name {continue}
-            return i.to_isize().unwrap();
-        }
-        -1
     }
     fn get_tabular_number(&self, input: &HeaderValue) -> isize {
         // check if assignments contains input
@@ -245,7 +244,7 @@ impl TransientDataSheet {
             return Ok(false)
         }
         let old_vec = self.tabular_data.get(nr.to_usize().unwrap()).unwrap();
-        let new_vec = TransientDataSheet::perform_replace(replace, old_vec);
+        let new_vec = TransientManipulatedDataSheet::perform_replace(replace, old_vec);
         self.headers.push(replace.output.to_owned());
         self.tabular_data.push(new_vec);
         Ok(true)
@@ -261,7 +260,7 @@ impl TransientDataSheet {
             inputs.push(nr)
         }
         let old_vecs: Vec<&Vec<String>> = inputs.iter().map(|nr|self.tabular_data.get(nr.to_owned()).unwrap()).collect();
-        let new_vec: Vec<String> = TransientDataSheet::perform_combine(old_vecs, &combine);
+        let new_vec: Vec<String> = TransientManipulatedDataSheet::perform_combine(old_vecs, &combine);
         self.headers.push(combine.output.to_owned());
         self.tabular_data.push(new_vec);
         Ok(true)
@@ -292,8 +291,12 @@ impl TransientDataSheet {
             //doesn't exist or exists later
             return Ok(false)
         }
+        println!("nr: {:?}", nr);
+        println!("self.tabular_data: {:?}", self.tabular_data);
+        println!("len: .tabular_data: {:?}", self.tabular_data.len());
         let old_vec = self.tabular_data.get(nr.to_usize().unwrap()).unwrap();
-        let new_vec = TransientDataSheet::perform_to_date(to_date, old_vec)?;
+        println!("old_vec: {:?}", old_vec);
+        let new_vec = TransientManipulatedDataSheet::perform_to_date(to_date, old_vec)?;
         self.headers.push(to_date.output.to_owned());
         self.tabular_data.push(new_vec);
         Ok(true)
@@ -312,17 +315,22 @@ impl TransientDataSheet {
 #[derive(Debug)]
 pub struct ManipulatedDataSheet {
     pub headers: Vec<String>,
+    pub resource: String,
     pub data: Vec<Vec<String>>,
     pub width : usize,
     pub height: usize,
+    pub assignments: HashMap<String, HeaderValue>,
 }
 
 impl ManipulatedDataSheet {
-    fn new(mut transient_manipulated_data_sheet: TransientDataSheet) -> ManipulatedDataSheet {
-        let new_headers = transient_manipulated_data_sheet.update_headers_with_assignments();
+    fn new(mut transient_manipulated_data_sheet: TransientManipulatedDataSheet) -> ManipulatedDataSheet {
+        let new_headers = transient_manipulated_data_sheet.replace_old_headers();
+        println!("{:?}",new_headers);
         ManipulatedDataSheet {
-            headers: new_headers,
+            assignments: transient_manipulated_data_sheet.assignments,
+            headers: transient_manipulated_data_sheet.headers,
             data: transient_manipulated_data_sheet.tabular_data,
+            resource: transient_manipulated_data_sheet.resource,
             width: transient_manipulated_data_sheet.width,
             height: transient_manipulated_data_sheet.height,
         }
@@ -330,7 +338,6 @@ impl ManipulatedDataSheet {
 }
 #[cfg(test)]
 mod test {
-    use regex::Regex;
     use parse_data::transform_parse::domain::header_value::HeaderValue;
     use parse_data::transform_parse::domain::methods_domain::behavior_type::BehaviorType;
     use parse_data::transform_parse::domain::methods_domain::combine_method::CombineMethod;
@@ -340,15 +347,7 @@ mod test {
     use parse_data::transform_parse::domain::methods_domain::replace_method::ReplaceMethod;
     use parse_data::transform_parse::domain::methods_domain::target_type::TargetType;
     use parse_data::transform_parse::domain::methods_domain::to_date_method::ToDateMethod;
-    use crate::manipulation::manipulated_data_sheet::{ManipulatedDataSheet, TransientDataSheet};
-    #[test]
-    fn test_test() {
-        let value = "2.January 1991".to_string();
-        let re1 = Regex::new(r"^(?x)(?P<day2>\d{1,2})\W{1,2}(?P<month1>[A-Za-z]*)\W{1,2}(?P<year2>\d{3,4})").unwrap();
-        let re2 = Regex::new("^(?x)(?P<day2>\\d{1,2})\\W{1,2}(?P<month1>[A-Za-z]*)\\W{1,2}(?P<year2>\\d{3,4})").unwrap();
-        let caps = re1.captures(value.as_str());
-        println!("here: {:?}",caps);
-}
+    use crate::manipulation::manipulated_data_sheet::{ManipulatedDataSheet, TransientManipulatedDataSheet};
     #[test]
     fn test_to_date() {
         let vec_1: Vec<String> = ["01.01.1991".to_string(), "3.2.400".to_string(),  "2.January 1991".to_string()].to_vec();
@@ -380,7 +379,7 @@ mod test {
 
             ].to_vec(),
         };
-        let result = TransientDataSheet::perform_to_date(&date_method, &vec_1);
+        let result = TransientManipulatedDataSheet::perform_to_date(&date_method, &vec_1);
         println!("{:?}", result);
     }
     #[test]
@@ -397,7 +396,7 @@ mod test {
             prefix: Option::from("$_".to_string()),
             suffix: Option::from("_£".to_string()),
         };
-        let result = TransientDataSheet::perform_combine(data,&&combine_method);
+        let result = TransientManipulatedDataSheet::perform_combine(data, &&combine_method);
         println!("{:?}", result);
     }
     #[test]
@@ -414,7 +413,7 @@ mod test {
         old_vec.push("0000Dictionary1111Dictionary".to_string());
         old_vec.push("0000Dictionary1111Dictionary".to_string());
         old_vec.push("0000Dictionary1111Dictionary".to_string());
-        let result = TransientDataSheet::perform_replace(&replace_method,&old_vec);
+        let result = TransientManipulatedDataSheet::perform_replace(&replace_method, &old_vec);
     }
     #[test]
     fn test_replace_greedy_part() {
@@ -430,7 +429,7 @@ mod test {
         old_vec.push("0000Dictionary1111Dictionary".to_string());
         old_vec.push("0000Dictionary1111Dictionary".to_string());
         old_vec.push("0000Dictionary1111Dictionary".to_string());
-        let result = TransientDataSheet::perform_replace(&replace_method,&old_vec);
+        let result = TransientManipulatedDataSheet::perform_replace(&replace_method, &old_vec);
 
     }
     #[test]
@@ -447,7 +446,7 @@ mod test {
         old_vec.push("0000Dictionary1111Dictionary".to_string());
         old_vec.push("0000Dictionary1111Dictionary".to_string());
         old_vec.push("0000Dictionary1111Dictionary".to_string());
-        let result = TransientDataSheet::perform_replace(&replace_method,&old_vec);
+        let result = TransientManipulatedDataSheet::perform_replace(&replace_method, &old_vec);
     }
     fn test_replace_greedy_whole() {
         todo!()

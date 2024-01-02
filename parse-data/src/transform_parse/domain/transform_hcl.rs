@@ -44,7 +44,6 @@ impl TransientStructureTransformHCL {
                 }
             }
             Expression::Array(vector) => {
-                let number_vector : Vec<f64> = vec![];
                 for expr in vector {
                     match expr {
                         Expression::Number(_) => {
@@ -79,13 +78,16 @@ impl TransientStructureTransformHCL {
         self.worksheets.push( sheet_info);
         Ok(())
     }
+    pub(crate) fn fill_sheets_number(&mut self) -> (){
+        // if all sheets are taken, the number of the sheets which should be processed doesn't exist, so we add the sheets described here at the end (every described sheet exists now in self.worksheets)
+        if self.all_sheets.is_some() && self.all_sheets.as_ref().unwrap() == &true {
+           self.sheets = self.worksheets.iter().map(|worksheet|worksheet.sheet_nr).collect();
+        }
+    }
     pub(crate) fn is_complete(&self) -> Result<(), ParsingError> {
         //check if worksheet-info matches with "sheets"-number(which sheets were described vs which sheets should be checked)
         if self.sheets.is_empty() && self.all_sheets.is_none() {
-            return Err(ParsingError::ValidationError(format!("'all_sheets'-attribute and 'sheets'-array aren't provided, one of them must be provided")));
-        }
-        if !self.sheets.is_empty() && self.all_sheets.is_some() {
-            return Err(ParsingError::ValidationError(format!("'all_sheets'-attribute and 'sheets'-array are provided, but only one of them should be provided")));
+            return Err(ParsingError::ValidationError(format!("'sheets'-array isn't provided, but it must be provided, provide either the number of sheets or set to true")));
         }
         if self.transform.is_none() {
             return Err(ParsingError::ValidationError(format!("'transform'-attribute and value weren't provided")));
@@ -140,6 +142,7 @@ impl TryFrom<hcl::Body> for TransformHCL {
                 }
             }
         }
+        transient_transform_hcl.fill_sheets_number();
         transient_transform_hcl.is_complete()?;
         let mut transform_hcl_builder : TransformHCLBuilder = TransformHCLBuilder::new(transient_transform_hcl);
         transform_hcl_builder.build()
