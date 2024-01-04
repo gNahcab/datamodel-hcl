@@ -35,16 +35,44 @@ sheet "1" {
       input = 6
       calendar_type= "Gregorian"
       pattern "1" {
-        // e.g. 1.12 - 23.12.1991
-        // e.g. 1 Dez - 23 Dezember 1991
+        // e.g. 1.1 - 23 Dezember 1991
         first {
           month = 1
-          year = 2
+          day = 2
         }
         date {
           day = 1
           month = 2
           month_word = true
+          year = 3
+        }
+      }
+      pattern "2" {
+        // e.g. 1 - 23 Dezember 1991
+        first {
+          month = 1
+        }
+        date {
+          day = 1
+          month = 2
+          month_word = true
+          year = 3
+        }
+      }
+      pattern "3" {
+        // e.g. 23 Dezember 1991
+        date {
+          day = 1
+          month = 2
+          month_word = true
+          year = 3
+        }
+      }
+      pattern "4" {
+        // e.g. 23 12 1991
+        date {
+          day = 1
+          month = 2
           year = 3
         }
       }

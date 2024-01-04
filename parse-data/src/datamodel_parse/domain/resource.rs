@@ -5,7 +5,7 @@ use crate::errors::ParsingError;
 use crate::expression_trait::ExpressionTransform;
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug,Clone, PartialEq)]
 pub struct Resource{
     pub name: String,
     pub labels: Vec<Label>,

@@ -1,28 +1,98 @@
+use std::collections::HashMap;
 use parse_data::datamodel_parse::domain::project_model::ProjectModel;
+use parse_data::datamodel_parse::domain::property::Property;
+use parse_data::datamodel_parse::domain::resource::Resource;
 use parse_data::errors::ParsingError;
+use crate::manipulation::check_data::check_data;
 use crate::manipulation::manipulated_data_sheet::ManipulatedDataSheet;
 
-pub(crate) fn shape_with_data_model(data: Vec<ManipulatedDataSheet>, model: ProjectModel) -> Result<(), ParsingError> {
-    //return shaped data eventually
-    for sheet in data.iter() {
-        let result = is_sheet_consistent_with_model(sheet, &model);
-        if result.is_err() {
-            return result
+pub struct ShapedData {
+    resource: String,
+    property_to_data: HashMap<String,Vec<String>>
+}
+
+impl ShapedData {
+    fn new(transient: TransientShapedData) -> ShapedData {
+        return ShapedData{ resource: transient.resource.unwrap().name, property_to_data: transient.property_to_data}
+    }
+}
+
+struct TransientShapedData {
+    resource: Option<Resource>,
+    property_to_data: HashMap<String, Vec<String>>,
+    property_to_nr: HashMap<String, usize>,
+}
+
+impl TransientShapedData {
+}
+
+impl TransientShapedData {
+}
+
+impl TransientShapedData {
+}
+
+impl TransientShapedData {
+    fn new() -> TransientShapedData {
+        TransientShapedData{ resource: None, property_to_data: Default::default(), property_to_nr: Default::default() }
+    }
+    fn add_resource(&mut self, resources: Vec<&Resource>, name: &String) -> Result<(), ParsingError> {
+        let resources: Vec<&&Resource> = resources.iter().filter(|resource|&resource.name == name).collect();
+        let resource = resources.get(0);
+        if resource.is_none() {
+            return Err(ParsingError::CompareModelError(format!("a resource with the name '{:?}' doesn't exist in the datamodel.", name)))
+        }
+        let resource : Resource= resource.unwrap().to_owned().to_owned().to_owned();
+        self.resource = Option::from(resource);
+        Ok(())
+    }
+    fn add_properties(&mut self, assignments: &HashMap<String, usize>) -> Result<(), ParsingError> {
+        let property_names_of_resource: Vec<String> = self.resource.as_ref().unwrap().res_props.iter().map(|prop|prop.name.to_owned()).collect();
+        for (name, vec_nr) in assignments {
+            if !property_names_of_resource.contains(&name) {
+                continue
+            }
+            self.property_to_nr.insert(name.to_owned(), vec_nr.to_owned());
+        }
+        Ok(())
+    }
+    pub(crate) fn add_data(&mut self, data: &Vec<Vec<String>>) {
+        for (value, nr) in self.property_to_nr.iter() {
+            let vec_data :&Vec<String>= data.get(nr.to_owned()).unwrap();
+            self.property_to_data.insert(value.to_owned(), vec_data.to_owned());
         }
     }
-    //return shaped data eventually
-    Ok(())
+    pub(crate) fn check_data(&self, properties: &Vec<Property>) -> Result<(), ParsingError> {
+        check_data(&self.property_to_data, properties)
+    }
+}
+struct WrapperShapedData<'a>(ManipulatedDataSheet, &'a ProjectModel);
+
+impl<'a> WrapperShapedData<'a>{
+    fn to_shaped_data(&self) -> Result<ShapedData, ParsingError> {
+       let mut transient_shaped_data = TransientShapedData::new();
+       transient_shaped_data.add_resource(self.1.resources.iter().collect(), &self.0.resource)?;
+       transient_shaped_data.add_properties(&self.0.assignments)?;
+       transient_shaped_data.add_data(&self.0.data);
+        transient_shaped_data.check_data(&self.1.properties)?;
+
+        Ok(ShapedData::new(transient_shaped_data))
+    }
 }
 
-fn is_sheet_consistent_with_model(sheet: &ManipulatedDataSheet, model: &ProjectModel) -> Result<(), ParsingError> {
-    resources_exist_in_project_model(sheet, model.resources.iter().map(|resource|&resource.name).collect::<Vec<&String>>())?;
-    properties_exist_in_project_model(sheet, model.properties.iter().map(|property|&property.name).collect::<Vec<&String>>())?;
-    todo!()
+pub(crate) fn shape_with_data_model(data: Vec<ManipulatedDataSheet>, model: ProjectModel) -> Result<Vec<ShapedData>, ParsingError> {
+    //return shaped data eventually
+    let mut all_shaped_data: Vec<ShapedData> = vec![];
+    for manipulated in data {
+        all_shaped_data.push(WrapperShapedData(manipulated, &model).to_shaped_data()?);
+    }
+    //return shaped data eventually
+    Ok(all_shaped_data)
 }
+
 
 fn properties_exist_in_project_model(sheet: &ManipulatedDataSheet, names: Vec<&String>) -> Result<(), ParsingError> {
-    // what are properties? all headers should be properties
-    let missing_headers: Vec<&String> = sheet.headers.iter().filter(|header| !names.contains(header)).collect();
+    // what are properties? all assignments should be properties, if they are not, they should be removed
 
     todo!()
 }

@@ -136,3 +136,10 @@ Resource "Text"{
 #### to_date
 - tries to return a DSP-Date according to data provided
 - only CE-Dates can be transformed, but BC-Dates could be added
+- months can be submitted as words and parsed. But at the moment only ASCII-Characters can be parsed
+pattern is 
+```
+{day1/month1/year1}W/{1,2}{day1/month1/year1}W/{1,2}{day1/month1/year1}
+W/{3,4}
+{day2/month2/year2}W/{1,2}{day2/month2/year2}W/{1,2}{day2/month2/year2}
+```

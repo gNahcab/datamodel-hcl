@@ -2,9 +2,9 @@ use std::num::ParseIntError;
 use crate::errors::ParsingError;
 use crate::expression_trait::ExpressionTransform;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ResProp {
-    pub(crate) name: String,
+    pub name: String,
     pub(crate) cardinality: String,
     pub(crate) gui_order: usize,
     pub(crate) ontology: String,

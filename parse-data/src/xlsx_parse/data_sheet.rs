@@ -1,11 +1,11 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use calamine::{DataType, Range};
+use polars::export::arrow::types::Index;
 use polars::export::num::ToPrimitive;
-use crate::datamodel_parse::domain::resource::Resource;
 use crate::errors::ParsingError;
+use crate::transform_parse::domain::assignment::Assignments;
 use crate::transform_parse::domain::header_value::HeaderValue;
-use crate::transform_parse::domain::methods_domain::date_bricks::DateInfo;
 use crate::transform_parse::domain::organized_by::OrganizedBy;
 use crate::transform_parse::domain::sheet_info::SheetInfo;
 use crate::transform_parse::domain::transform_type::TransformXLSX;
@@ -27,7 +27,7 @@ impl DataSheetWrapper {
         }
     }
     fn datasheet_by_row(&self) -> Result<DataSheet, ParsingError> {
-        let mut transient_data_sheet: TransientDataSheet = TransientDataSheet::new(&self.1.resource);
+        let mut transient_data_sheet: TransientDataSheet = TransientDataSheet::new(&self.1.resource, &self.1.assignments);
         transient_data_sheet.add_width(self.0.1.width());
         transient_data_sheet.add_height(self.0.1.height());
         let mut worksheet_iterator = self.0.1.rows();
@@ -41,6 +41,7 @@ impl DataSheetWrapper {
                 Some(row) => {row}
             };
             let headers: Vec<String> = first_row.iter().map(|entry|(entry.to_string())).collect();
+
             transient_data_sheet.add_headers(headers);
             start = 1;
         }
@@ -58,7 +59,7 @@ impl DataSheetWrapper {
     }
     fn datasheet_by_col(&self) -> Result<DataSheet, ParsingError> {
         // returns a datasheet that is reorganised by column, this is necessary because the importer imports the data by row
-        let mut transient_data_sheet: TransientDataSheet= TransientDataSheet::new(&self.1.resource);
+        let mut transient_data_sheet: TransientDataSheet= TransientDataSheet::new(&self.1.resource, &self.1.assignments);
         transient_data_sheet.add_width(self.0.1.height());
         transient_data_sheet.add_height(self.0.1.width());
         let mut worksheet_iterator = self.0.1.rows();
@@ -89,14 +90,20 @@ pub struct TransientDataSheet {
 }
 
 impl TransientDataSheet {
-}
-
-impl TransientDataSheet {
-    pub fn new(resource: &String) -> TransientDataSheet {
-        TransientDataSheet { tabular_data: vec![], resource: resource.to_owned(), height: 0, width: 0, headers: None, assignments: Default::default() }
+    pub fn new(resource: &String, assignments: &Assignments) -> TransientDataSheet {
+        TransientDataSheet { tabular_data: vec![], resource: resource.to_owned(), height: 0, width: 0, headers: None, assignments: assignments.assignments_to_header_value.to_owned() }
     }
-    fn add_headers(&mut self, first_column: Vec<String>) {
+    fn add_headers(&mut self, first_column: Vec<String>) -> Result<(), ParsingError> {
+        //no duplicates allowed
+        let mut uniq = HashSet::new();
+        for name in first_column.iter() {
+            //no name more than once used
+            if uniq.insert(name) == false {
+                return Err(ParsingError::ValidationError(format!("found duplicate in headers: '{:?}'. Every header must be unique.", name)));
+            }
+        }
         self.headers = Option::from(first_column);
+        Ok(())
     }
     pub fn add_height(&mut self, height: usize) {
         self.height = height;
@@ -114,23 +121,22 @@ pub struct DataSheet {
     pub resource: String,
     pub height: usize,
     pub width: usize,
-    pub headers: Vec<String>,
+    pub headers: Option<Vec<String>>,
     pub assignments: HashMap<String, HeaderValue>,
+}
+
+impl DataSheet {
 }
 
 
 impl DataSheet {
     pub fn new(transient_data_sheet: TransientDataSheet) -> DataSheet {
-        let headers: Vec<String> = match transient_data_sheet.headers {
-            None => {vec![]}
-            Some(headers) => {headers}
-        };
         DataSheet{
             tabular_data: transient_data_sheet.tabular_data,
             resource: transient_data_sheet.resource,
             height: transient_data_sheet.height,
             width: transient_data_sheet.width,
-            headers,
+            headers: transient_data_sheet.headers,
             assignments: transient_data_sheet.assignments,
         }
     }
@@ -144,6 +150,7 @@ impl DataSheet {
             assignments: self.assignments.clone(),
         }
     }
+
     fn do_column_numbers_exist(&self, sheet_info: &SheetInfo) -> Result<(), ParsingError> {
         // check if the column-number can be assigned to a column
         let headers: Vec<&HeaderValue> = sheet_info.assignments.assignments_to_header_value.iter().map(|(new_header, current)| current).collect();
@@ -153,33 +160,43 @@ impl DataSheet {
                 HeaderValue::Number(number) => Some(number),
                 _ => None,
             })
-            .filter(|number| number.to_usize().unwrap() > self.width).collect();
+            .filter(|number| usize::from(number.to_owned().to_owned())  > self.width).collect();
         if numbers_greater_than_width.len() != 0 {
             return Err(ParsingError::ValidationError(format!("Some column/row numbers in 'assignments' of sheet-nr '{:?}' are greater than the width of the spreadsheet: '{:?}'",sheet_info.sheet_nr, numbers_greater_than_width)));
         }
         Ok(())
     }
     fn do_headers_exist(&self, sheet_info: &SheetInfo) -> Result<(), ParsingError> {
-        let headers: Vec<&String> = sheet_info.assignments.assignments_to_header_value.iter().map(|(new_header, current)| current).flat_map(|current|match current {
-            HeaderValue::Name(name) => {Some(name)}
-            HeaderValue::Number(_) => {None}
-        }).collect();
-        let missing_headers: Vec<&&String> = headers.iter().filter(|header| !self.headers.contains(header)).collect();
-        if missing_headers.len() != 0 {
-            return Err(ParsingError::ValidationError(format!("Some column/row headers in 'assignments' of sheet-nr '{:?}' cannot be found in the spreadsheet: '{:?}'",sheet_info.sheet_nr, missing_headers)));
+        if self.headers.is_some() {
+            // check headers in assignments
+            let headers: Vec<&String> = sheet_info.assignments.assignments_to_header_value.iter().map(|(new_header, current)| current).flat_map(|current|match current {
+                HeaderValue::Name(name) => {Some(name)}
+                HeaderValue::Number(_) => {None}
+            }).collect();
+            let missing_headers: Vec<&&String> = headers.iter().filter(|header| !self.headers.as_ref().unwrap().contains(header)).collect();
+            if missing_headers.len() != 0 {
+                return Err(ParsingError::ValidationError(format!("Some column/row headers in 'assignments' of sheet-nr '{:?}' cannot be found in the spreadsheet: '{:?}'",sheet_info.sheet_nr, missing_headers)));
+            }
+        } else {
+           // check that no headers exist in assignments
+            let headers_that_should_not_exist: Vec<&String> = sheet_info.assignments.assignments_to_header_value
+                .iter()
+                .flat_map(|(_, value)| match value {
+                    HeaderValue::Name(header) => {Some(header)}
+                    HeaderValue::Number(_) => {None}
+                }).collect();
+            if headers_that_should_not_exist.len() != 0 {
+                return Err(ParsingError::ValidationError(format!("headers was set to 'false' but in the assignments were headers found, where only numbers should be: '{:?}'", headers_that_should_not_exist)));
+            }
         }
         Ok(())
     }
-    fn assignments_correct(&self, sheet_info: &SheetInfo)-> Result<(), ParsingError> {
+    pub fn check_assignments_from_sheet_info(&self, sheet_info: &SheetInfo) -> Result<(), ParsingError> {
         self.do_column_numbers_exist(sheet_info)?;
         self.do_headers_exist(sheet_info)?;
         Ok(())
     }
-    pub fn check_assignments_from_sheet_info(&self, sheet_info: &SheetInfo) -> Result<(), ParsingError> {
-        self.assignments_correct(sheet_info)?;
-        Ok(())
-    }
-    pub fn check_transform_form_sheet_info(&self, sheet_info: &SheetInfo) -> Result<(), ParsingError> {
+    pub fn check_transform_from_sheet_info(&self, sheet_info: &SheetInfo) -> Result<(), ParsingError> {
         // get all output-values of transform
         let output_values: Vec<&String> = sheet_info.transformations.as_ref().unwrap().output_values();
         let input_values : Vec<&HeaderValue> = sheet_info.transformations.as_ref().unwrap().input_values();
@@ -207,7 +224,7 @@ impl DataSheet {
                 else if assignments.contains(&name) {
                     None
                 }
-                else if self.headers.contains(name) {
+                else if self.headers.is_some() && self.headers.as_ref().unwrap().contains(name) {
                     None
                 }
                 else {Some(name)}
@@ -218,6 +235,34 @@ impl DataSheet {
             return Err(ParsingError::ValidationError(format!("'transform' of sheet-nr '{:?}' has methods with input headers that don't exist in headers of the spreadsheet nor in assignments nor as other output-values of another transform-methods: '  '{:?}'", sheet_info.sheet_nr, headers_not_existing)));
         }
         Ok(())
+    }
+    pub fn modified_assignments(&self) -> HashMap<String, usize> {
+        // 1. we only need string to vec-number: replace HeaderValue with vec-number
+        // 2 .add headers to assignments, if they don't exist already in assignments
+        let mut new_assignments:HashMap<String, usize> = HashMap::new();
+        // 1
+        for (name, header) in self.assignments.iter() {
+            match header {
+                HeaderValue::Name(header_value) => {
+                   let header_nr = self.headers.as_ref().unwrap().iter().enumerate().find(|(nr, value)| value == &header_value).unwrap().0;
+                    new_assignments.insert(name.to_owned(), header_nr);
+                }
+                HeaderValue::Number(number) => {
+                    new_assignments.insert(name.to_owned(), usize::from(number.to_owned()));
+                }
+            }
+        }
+        // 2
+        if self.headers.is_some() {
+            let numbers: Vec<usize> = new_assignments.iter().map(|(name, vec_nr)| vec_nr.to_owned()).collect();
+            for (nr, header) in self.headers.as_ref().unwrap().iter().enumerate() {
+                if numbers.contains(&&nr){
+                   continue
+                }
+                new_assignments.insert(header.to_owned(), nr);
+            }
+        }
+        return new_assignments
     }
 }
 pub fn xlsx_data_sheets<P: AsRef<Path>>(transform_xlsx: &TransformXLSX, data_path: P) -> Result<Vec<DataSheet>, ParsingError> {

@@ -7,6 +7,7 @@ pub enum ParsingError {
     DataImportError(DataImportError),
     ParseInt(ParseIntError),
     ParseProjectModel(String),
+    CompareModelError(String),
     ValidationError(String),
     XlsxParse(String),
     RegexError(regex::Error),

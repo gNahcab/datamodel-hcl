@@ -9,12 +9,11 @@ pub struct DateWrapper (pub(crate) ToDateMethod, pub(crate) String);
 
 impl DateWrapper {
     /// five cases:
-    /// case 1: year-month-day || day-month-year
+    /// case 1: year-month-day || day-month-year || month-day-year
     /// case 2: year-month || month-year
-    /// case 3: case 1 or case 2 with month written as word (e.g. Jan 1991)
-    /// case 3.2 month-day-year
     /// case 4: year
-    /// case 5: symbols, words used to convey date is BC or CE
+    /// case 3: case 1 or case 2 with month written as word (e.g. Jan 1991)
+    /// case 5: symbols, words used to convey date is BC or CE -> not implemented
     pub fn to_date(&self) -> Result<DatePeriod, ParsingError> {
         for i in 0..self.0.date_patterns.len() {
             let date_pattern = self.0.date_patterns.get(i).unwrap();

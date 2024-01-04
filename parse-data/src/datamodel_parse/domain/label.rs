@@ -2,7 +2,7 @@ use hcl::format::Format;
 use crate::errors::ParsingError;
 use crate::expression_trait::ExpressionTransform;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Label{
     pub(crate) language_abbr: String,
     pub(crate) text: String,

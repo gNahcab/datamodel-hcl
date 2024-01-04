@@ -111,6 +111,7 @@ impl TransientDatePeriod {
 }
 
 fn parse_month_to_number(name: &String) -> Result<u8, ParsingError>  {
+    //todo: allow utf-8; at the moment only ASCII-Characters can be parsed
         let januars = ["January", "Jan", "Jän", "Janv",  "Januar", "Janvier", "Gennaio", "Genn",];
         let februarys = ["February", "Feb", "Februar", "Février", "Fevrier", "Févr", "Fevr", "Febbraio", "Febbr",];
         let marchs = ["March", "Mar", "März", "Mars", "Marzo", "Mar",];

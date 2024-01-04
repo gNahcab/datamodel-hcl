@@ -79,6 +79,9 @@ impl DatePattern {
                     }
                 }
             }
+            //remove last '\W{1,2} and replace with \W{1,2,3}'
+            let separator = r"\W{3,4}";
+            regex_str = format!("{}{}",&regex_str[0..regex_str.len() - non_word_or_number.to_string().len()], separator);
         }
         let nr_day = &self.date.day;
         let nr_month = &self.date.month;
