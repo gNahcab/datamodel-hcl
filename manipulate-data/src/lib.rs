@@ -1,2 +1,2 @@
-mod operations;
-mod manipulation;
+pub mod operations;
+pub mod manipulation;

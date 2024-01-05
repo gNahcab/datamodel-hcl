@@ -1,16 +1,15 @@
 [package]
-name = "datamodel-hcl-cli"
+name = "export-data"
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 readme = "../README.md"
-description = "datamodel-hcl-cli provides command line functions for datamodel import and validation and for data import, transformation and validation as well."
+description = "export_data provides functions to export data."
 authors = ["GNahcab"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 manipulate-data = { path = "../manipulate-data", version = "0.1.0" }
-anyhow.workspace = true
-hcl-rs.workspace = true
-clap = { workspace = true, features = ["derive"] }
+parquet.workspace = true
+arrow.workspace = true

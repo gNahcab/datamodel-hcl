@@ -6,9 +6,10 @@ use parse_data::errors::ParsingError;
 use crate::manipulation::check_data::check_data;
 use crate::manipulation::manipulated_data_sheet::ManipulatedDataSheet;
 
+#[derive(Debug)]
 pub struct ShapedData {
-    resource: String,
-    property_to_data: HashMap<String,Vec<String>>
+    pub resource: String,
+    pub property_to_data: HashMap<String,Vec<String>>
 }
 
 impl ShapedData {
@@ -23,14 +24,6 @@ struct TransientShapedData {
     property_to_nr: HashMap<String, usize>,
 }
 
-impl TransientShapedData {
-}
-
-impl TransientShapedData {
-}
-
-impl TransientShapedData {
-}
 
 impl TransientShapedData {
     fn new() -> TransientShapedData {

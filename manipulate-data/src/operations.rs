@@ -1,8 +1,7 @@
 use std::path::Path;
+use polars::frame::DataFrame;
 use parse_data::errors::ParsingError;
-use parse_data::transform_parse::domain::transform_hcl::TransformHCL;
 use parse_data::transform_parse::domain::transform_type::TransformType;
-use parse_data::xlsx_parse::data_sheet::DataSheet;
 use crate::manipulation;
 use crate::manipulation::manipulate::{process_csv_data, process_xlsx_data};
 use crate::manipulation::shape_data::ShapedData;
@@ -23,16 +22,7 @@ pub fn process_data<P: AsRef<Path>>(data_path: P, data_model_hcl_path: P, transf
 }
 
 //#[pymodule]
-fn import_polars_dataframe<P: AsRef<Path>>(data_path: P, data_model_hcl_path: P, transform_hcl_path: P) -> () {
-    //todo call rust from python to export to python as polars dataframe(if it is possible not to loose anotation-data like resource and assigned properties): http://saidvandeklundert.net/learn/2021-11-18-calling-rust-from-python-using-pyo3/
-    let shaped_sheets = process_data(data_path, data_model_hcl_path, transform_hcl_path)?;
-    dataframes(shaped_sheets)
-}
 
-fn dataframes(shaped_sheets: Vec<ShapedData>) {
-    //return polars dataframe
-    todo!()
-}
 
 #[cfg(test)]
 mod test {

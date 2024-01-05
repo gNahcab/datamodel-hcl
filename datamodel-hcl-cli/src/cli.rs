@@ -55,15 +55,18 @@ pub fn read_in() -> () {
             // in CLion: '-- validate --project datamodel.hcl datamodel'
             println!("validate: project {:?}, file_type: {:?}", project, type_)
             ),
-        Some(Commands::CSV {project, transform, data}) => (
-            println!("Csv: project {:?}, transform: {:?}, data: {:?}", project, transform , data)
-            ),
-        Some(Commands::XLSX { project: project, transform, data}) => (
-            println!("Xlsx: project {:?}, transform: {:?}, data: {:?}", project, transform, data)
-        ),
-        // Todo: return message "only the following commands have an effect: 'Import'" ?
-        None => (println!("none: {:?}", cli.command)),
+        Some(Commands::CSV {project, transform, data}) => {
+            println!("Csv: project {:?}, transform: {:?}, data: {:?}", project, transform, data);
+        },
+        Some(Commands::XLSX { project: project, transform, data}) => {
+            println!("Xlsx: project {:?}, transform: {:?}, data: {:?}", project, transform, data);
+
+        },
+        None => (println!("Command '{:?}' does not exist: Commands are 'validate', 'csv', 'xlsx'", cli.command)),
     }
 
 }
+
+
+
 
