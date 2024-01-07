@@ -1,5 +1,6 @@
 use std::path::PathBuf;
-use clap::{CommandFactory, Parser, Subcommand};
+use clap::{Parser, Subcommand};
+use crate::operations;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -21,8 +22,8 @@ enum Commands {
     /// Parses a HCL-Datamodel
     VALIDATE {
             /// the required path to the datamodel in hcl
-            #[arg(short, long, value_name = "PROJECT", value_name = "TYPE")]
-            project: PathBuf,
+            #[arg(short, long, value_name = "PATH   ", value_name = "TYPE")]
+            path: PathBuf,
             type_: String,
     },
     CSV {
@@ -51,22 +52,34 @@ pub fn read_in() -> () {
 // You can check for the existence of subcommands, and if found use their
     // matches just as you would the top level cmd
     match &cli.command {
-        Some(Commands::VALIDATE { project, type_}) => (
-            // in CLion: '-- validate --project datamodel.hcl datamodel'
-            println!("validate: project {:?}, file_type: {:?}", project, type_)
-            ),
+        Some(Commands::VALIDATE { path, type_}) => {
+            // in CLion: '-- validate --path datamodel.hcl datamodel'
+            println!("validate: path {:?}, file_type: {:?}", path, type_);
+            match type_.as_str() {
+                "datamodel"=> {
+                    operations::validate_datamodel(path);
+                },
+                "transform"=> {
+                    operations::validate_transform(path);
+                },
+                &_ => {
+                    println!("unknown sub-command '{}'. Valid subcommands are: 'datamodel' and 'transform'", type_);
+                } }
+            },
         Some(Commands::CSV {project, transform, data}) => {
             println!("Csv: project {:?}, transform: {:?}, data: {:?}", project, transform, data);
+            println!("not implemented");
         },
         Some(Commands::XLSX { project: project, transform, data}) => {
             println!("Xlsx: project {:?}, transform: {:?}, data: {:?}", project, transform, data);
+            operations::export_parquet(data, project, transform);
+            //operations::export_csv(data,project, transform);
 
         },
         None => (println!("Command '{:?}' does not exist: Commands are 'validate', 'csv', 'xlsx'", cli.command)),
     }
 
 }
-
 
 
 

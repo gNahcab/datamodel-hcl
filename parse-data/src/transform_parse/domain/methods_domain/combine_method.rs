@@ -1,5 +1,6 @@
 use hcl::{Attribute, Block, Expression};
 use crate::errors::ParsingError;
+use crate::expression_trait::ExpressionTransform;
 use crate::transform_parse::domain::header_value::{HeaderMethods, HeaderValue};
 use crate::transform_parse::domain::methods_domain::wrapper_trait::Wrapper;
 
@@ -89,13 +90,13 @@ impl WrapperCombineMethod {
                     transient_structure.add_input(attribute.expr.to_owned())?;
                 }
                 "separator" => {
-                    transient_structure.add_separator(attribute.expr.to_string())?;
+                    transient_structure.add_separator(attribute.expr.to_string_2()?)?;
                 }
                 "prefix" => {
-                    transient_structure.add_prefix(attribute.expr.to_string())?;
+                    transient_structure.add_prefix(attribute.expr.to_string_2()?)?;
                 }
                 "suffix" => {
-                    transient_structure.add_suffix(attribute.expr.to_string())?;
+                    transient_structure.add_suffix(attribute.expr.to_string_2()?)?;
                 }
                 _ => {
                     return Err(ParsingError::ValidationError(format!("found this unknown attribute '{:?}' in method '{:?}'.", attribute, transient_structure.output)));

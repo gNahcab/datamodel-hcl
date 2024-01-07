@@ -1,4 +1,5 @@
 pub mod cli;
+mod operations;
 
 use std::env::args;
 use clap::Parser;

@@ -138,8 +138,8 @@ impl TransientManipulatedDataSheet {
         }
         let old_vec = self.tabular_data.get(nr.to_usize().unwrap()).unwrap();
         let new_vec: Vec<String> = old_vec.iter().map(|entry|entry.to_owned().to_lowercase()).collect();
-        self.tabular_data.push(new_vec);
         self.assignments.insert(lower.output.to_owned(), self.tabular_data.len());
+        self.tabular_data.push(new_vec);
         Ok(true)
     }
 
@@ -152,8 +152,8 @@ impl TransientManipulatedDataSheet {
         }
         let old_vec = self.tabular_data.get(nr.to_usize().unwrap()).unwrap();
         let new_vec: Vec<String> = old_vec.iter().map(|entry|entry.to_owned().to_uppercase()).collect();
-        self.tabular_data.push(new_vec);
         self.assignments.insert(upper.output.to_owned(), self.tabular_data.len());
+        self.tabular_data.push(new_vec);
         Ok(true)
     }
     pub (crate) fn perform_replace(replace: &ReplaceMethod, old_vec: &Vec<String>) -> Vec<String> {
@@ -204,8 +204,8 @@ impl TransientManipulatedDataSheet {
         }
         let old_vec = self.tabular_data.get(nr.to_usize().unwrap()).unwrap();
         let new_vec = TransientManipulatedDataSheet::perform_replace(replace, old_vec);
-        self.tabular_data.push(new_vec);
         self.assignments.insert(replace.output.to_owned(), self.tabular_data.len());
+        self.tabular_data.push(new_vec);
         Ok(true)
     }
     pub fn add_combine(&mut self, combine: &CombineMethod) -> Result<bool, ParsingError> {
@@ -218,10 +218,10 @@ impl TransientManipulatedDataSheet {
             };
             inputs.push(nr)
         }
-        let old_vecs: Vec<&Vec<String>> = inputs.iter().map(|nr|self.tabular_data.get(nr.to_owned()).unwrap()).collect();
-        let new_vec: Vec<String> = TransientManipulatedDataSheet::perform_combine(old_vecs, &combine);
-        self.tabular_data.push(new_vec);
+        let old_vec: Vec<&Vec<String>> = inputs.iter().map(|nr|self.tabular_data.get(nr.to_owned()).unwrap()).collect();
+        let new_vec: Vec<String> = TransientManipulatedDataSheet::perform_combine(old_vec, &combine);
         self.assignments.insert(combine.output.to_owned(), self.tabular_data.len());
+        self.tabular_data.push(new_vec);
         Ok(true)
     }
     fn perform_combine(data: Vec<&Vec<String>>, combine_method: &&CombineMethod) -> Vec<String>{
@@ -252,8 +252,8 @@ impl TransientManipulatedDataSheet {
         }
         let old_vec = self.tabular_data.get(nr.to_usize().unwrap()).unwrap();
         let new_vec = TransientManipulatedDataSheet::perform_to_date(to_date, old_vec)?;
-        self.tabular_data.push(new_vec);
         self.assignments.insert(to_date.output.to_owned(), self.tabular_data.len());
+        self.tabular_data.push(new_vec);
         Ok(true)
     } fn perform_to_date(to_date_method: &ToDateMethod, data: &Vec<String>) -> Result<Vec<String>, ParsingError> {
         let mut new_dates:Vec<String> = vec![];

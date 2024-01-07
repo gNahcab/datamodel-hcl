@@ -1,14 +1,46 @@
 <h1> Validate Datamodels, Manipulate Excel-Data using the Rust Programming Language and HCL (Hashi Corp Language)</h1>
 
-### how to install rust -> todo
+### purpose of project
+When DaSCH receives data from project, the RDU(Research-Data-Unit) has to interpret and write scripts to import the data or even has to manipulate the original files. 
+But this is not an optimal way of dealing with the data we receive. The idea of this project is to proof that it is possible to find a way to describe how the original data has to be manipulated in order to export it from the original files and import it into DSP without manipulating the original data.
+In this way there should be a strict separation between the original files we receive and the import we create. The import from the original files is always reproducible, because we describe how it has to be imported. 
+A file that describes how the original-files has to be imported is not enough tough, we also need a datamodel so that we don't need to specify everything (e.g. all the properties of a resource-class) in the transform-file.
+The aim of this project was to show that this is possible for xlsx-files (and thus for csv as well) and could be for other formats like sql, filemaker-databases etc. as well (proof of concept). 
+
+The file that describes how to import the xlsx-file is written in HCL(Hashi-Corp-Language) the file that describes the datamodel is written in HCL as well.
+The whole program that reads those files and imports the xlsx is written in the Rust Programming Language.
+
+At the moment it is possible
+- to evaluate a data-model
+- to evaluate a transform-file (a file that describes how to import the xlsx)
+- return the xlsx-data as a csv-file (but I am working on an alternative: 'parquet', which should allow to store the data of multiple resources(and their properties) in one parquet-file, see: https://parquet.apache.org/ and https://elferherrera.github.io/arrow_guide/)
+
+The rest of this Mark-down describes: 
+- how to install rust
+- the cli-commands
+- the structure of a datamodel in HCL
+- the structure of a transform-HCL file 
+- and the different commands to manipulate data-vectors with transform-hcl.
+
+### how to run it 
+install Rust:
+- follow the steps here: https://www.rust-lang.org/tools/install (if you prefer a different way, please make sure that you install 'Cargo', the build tool of Rust as well)
+compile the files:
+1. open a terminal 
+2. go to the top-folder 'datamodel-hcl' and run ```cargo build```
+3. now you will be able to run the CLI Commands
 
 
 ### Cli Commands 
  #### how to use Cli commands -> todo
-- evaluate data-model:
-- evaluate transform-file:
-- manipulate xlsx-data:
-- manipulate csv-data:
+- evaluate data-model:```validate {path} datamodel```
+- evaluate transform-file:```validate {path} transform```
+- manipulate xlsx-data: returns one csv-file per xlsx-sheet:  ```xlsx {xlsx-path} {datamodel-path} {transform-path}```
+- manipulate csv-data: not implemented 
+
+1. for every command: open a terminal
+2. go to the top-folder of the project 'datamodel-hcl'
+3. type in ```./target/debug/datamodel-hcl-cli {command}```
 
 <h2> Validate HCL-Datamodels using Rust </h2>
 
@@ -104,10 +136,33 @@ Resource "Text"{
   - 1: one value is mandatory
   - 1-n: one value is mandatory but more are allowed
 
-## Manipulate Data
+## Transform HCL to manipulate Data 
+
+- Data is imported by copying data
+
+for parquet: see here
 
 - Transform-HCL is used to manipulate imported data
+### structure xlsx
+#### first-level attributes:
+- transform: what will be transformed
+- sheets: the sheets that shall be described, e.g. if sheet 1, 2, 3 should be described we write sheets= [1,2,3]. If all sheets should be described we just write sheets = "all"
+- sheet "nr": the description of the sheet
 
+```hcl
+transform = "xlsx"
+sheets = "all"
+sheet "1" {
+}
+``` 
+#### sheet
+first-level:
+- structured_by: "column" or "row". Is the data organized by column or row?
+- headers: true or false, do headers exist or not?
+- resource: a resource-name, which should match a resource in the data-model
+- assignments: headers or numbers of columns or rows are assigned to a property-name or id or label
+- 
+- 
 ### methods:
 - lower
 - upper

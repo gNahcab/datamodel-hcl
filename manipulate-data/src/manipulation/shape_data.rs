@@ -19,6 +19,8 @@ impl ShapedData {
 }
 
 struct TransientShapedData {
+    id_:Option<String>,
+    label: Option<String>,
     resource: Option<Resource>,
     property_to_data: HashMap<String, Vec<String>>,
     property_to_nr: HashMap<String, usize>,
@@ -27,7 +29,7 @@ struct TransientShapedData {
 
 impl TransientShapedData {
     fn new() -> TransientShapedData {
-        TransientShapedData{ resource: None, property_to_data: Default::default(), property_to_nr: Default::default() }
+        TransientShapedData{ id_: None, label: None, resource: None, property_to_data: Default::default(), property_to_nr: Default::default() }
     }
     fn add_resource(&mut self, resources: Vec<&Resource>, name: &String) -> Result<(), ParsingError> {
         let resources: Vec<&&Resource> = resources.iter().filter(|resource|&resource.name == name).collect();
@@ -42,6 +44,18 @@ impl TransientShapedData {
     fn add_properties(&mut self, assignments: &HashMap<String, usize>) -> Result<(), ParsingError> {
         let property_names_of_resource: Vec<String> = self.resource.as_ref().unwrap().res_props.iter().map(|prop|prop.name.to_owned()).collect();
         for (name, vec_nr) in assignments {
+            if &&*name.to_lowercase() == &"id"  {
+                if self.id_.is_some() {
+                    return Err(ParsingError::ValidationError(format!("found multiple id-headers, but only one is allowed. The first was '{}', the second is: '{}'", self.id_.as_ref().unwrap(), name )))
+                }
+                self.property_to_nr.insert(name.to_owned(), vec_nr.to_owned());
+            }
+            if &&*name.to_lowercase() == &"label"  {
+                if self.label.is_some() {
+                    return Err(ParsingError::ValidationError(format!("found multiple label-headers, but only one is allowed. The first was '{}', the second is: '{}'", self.label.as_ref().unwrap(), name )))
+                }
+                self.property_to_nr.insert(name.to_owned(), vec_nr.to_owned());
+            }
             if !property_names_of_resource.contains(&name) {
                 continue
             }

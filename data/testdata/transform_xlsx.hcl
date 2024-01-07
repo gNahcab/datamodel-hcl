@@ -13,10 +13,10 @@ sheet "1" {
   }
 
   transformations {
-    lower "label" {
+    lower "label_2" {
       input = "not_lowered"
     }
-    combine "label_2"{
+    combine "label"{
       input = [0, "not_lowered"]
       separator = "_"
       prefix = "BIZ_"

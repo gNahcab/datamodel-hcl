@@ -11,6 +11,8 @@ authors = ["GNahcab"]
 
 [dependencies]
 manipulate-data = { path = "../manipulate-data", version = "0.1.0" }
+parse-data = { path = "../parse-data", version = "0.1.0" }
+export-data = { path = "../export-data", version = "0.1.0" }
 anyhow.workspace = true
 hcl-rs.workspace = true
 clap = { workspace = true, features = ["derive"] }

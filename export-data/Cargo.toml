@@ -13,3 +13,4 @@ authors = ["GNahcab"]
 manipulate-data = { path = "../manipulate-data", version = "0.1.0" }
 parquet.workspace = true
 arrow.workspace = true
+chrono.workspace = true

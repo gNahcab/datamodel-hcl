@@ -1,2 +1,2 @@
 mod table;
-mod operations;
+pub mod operations;
