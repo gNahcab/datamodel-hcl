@@ -166,17 +166,52 @@ impl DataSheet {
         }
         Ok(())
     }
+    fn check_headers_in_assignments(&self, sheet_info:&SheetInfo) -> Result<(), ParsingError> {
+        // check headers in assignments exist in spreadsheet
+        let headers: Vec<&String> = sheet_info.assignments.assignments_to_header_value.iter().map(|(new_header, current)| current).flat_map(|current|match current {
+            HeaderValue::Name(name) => {Some(name)}
+            HeaderValue::Number(_) => {None}
+        }).collect();
+        let missing_headers: Vec<&&String> = headers.iter().filter(|header| !self.headers.as_ref().unwrap().contains(header)).collect();
+        if missing_headers.len() != 0 {
+            return Err(ParsingError::ValidationError(format!("Some column/row headers in 'assignments' of sheet-nr '{:?}' cannot be found in the spreadsheet: '{:?}'",sheet_info.sheet_nr, missing_headers)));
+        }
+        Ok(())
+    }
+    fn check_headers_numbers_not_match(&self, sheet_info: &SheetInfo) -> Result<(), ParsingError> {
+        // check headers and numbers assigned don't match: otherwise a column would be assigned twice: once as a number and once as a Header-string
+        if self.headers.is_some() {
+            let assigned_headers_to_header_number: Vec<(&String, usize)>= sheet_info.assignments.assignments_to_header_value.iter().
+                filter_map(|(name, header_value)| match header_value {
+                    HeaderValue::Name(value) => {Some(value)}
+                    HeaderValue::Number(_) => {None}
+                }).
+                map(|value|
+                    (value, self.headers.as_ref().unwrap().
+                        iter().
+                        position(|header_string|header_string == value).
+                        unwrap())
+                ).
+                collect();
+            let assigned_numbers: Vec<&u8> = sheet_info.assignments.assignments_to_header_value.iter().
+                filter_map(|(name, header_value)| match header_value {
+                    HeaderValue::Name(_) => {None}
+                    HeaderValue::Number(value) => {Some(value)}
+                }).collect();
+            let headers_used_as_numbers: Vec<&(&String, usize)> = assigned_headers_to_header_number.iter().filter(|(header_name, position)| assigned_numbers.contains(&&(position.to_owned() as u8))).collect();
+            if headers_used_as_numbers.len() != 0 {
+                return Err(ParsingError::ValidationError(format!("found string-headers that were used as numbers as well: '{:?}'. Either use the number or the headers, but not both.", headers_used_as_numbers)))
+            }
+        }
+        Ok(())
+    }
     fn do_headers_exist(&self, sheet_info: &SheetInfo) -> Result<(), ParsingError> {
         if self.headers.is_some() {
             // check headers in assignments
-            let headers: Vec<&String> = sheet_info.assignments.assignments_to_header_value.iter().map(|(new_header, current)| current).flat_map(|current|match current {
-                HeaderValue::Name(name) => {Some(name)}
-                HeaderValue::Number(_) => {None}
-            }).collect();
-            let missing_headers: Vec<&&String> = headers.iter().filter(|header| !self.headers.as_ref().unwrap().contains(header)).collect();
-            if missing_headers.len() != 0 {
-                return Err(ParsingError::ValidationError(format!("Some column/row headers in 'assignments' of sheet-nr '{:?}' cannot be found in the spreadsheet: '{:?}'",sheet_info.sheet_nr, missing_headers)));
-            }
+            self.check_headers_in_assignments(sheet_info)?;
+            // check headers and numbers assigned don't match
+            self.check_headers_numbers_not_match(sheet_info)?;
+
         } else {
            // check that no headers exist in assignments
             let headers_that_should_not_exist: Vec<&String> = sheet_info.assignments.assignments_to_header_value
