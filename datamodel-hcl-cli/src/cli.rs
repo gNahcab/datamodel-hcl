@@ -22,9 +22,9 @@ enum Commands {
     /// Parses a HCL-Datamodel
     VALIDATE {
             /// the required path to the datamodel in hcl
-            #[arg(short, long, value_name = "PATH   ", value_name = "TYPE")]
-            path: PathBuf,
+            #[arg(short, long, value_name = "TYPE", value_name = "PATH")]
             type_: String,
+            path: PathBuf,
     },
     CSV {
         #[arg(short, long, value_name = "FILE DM", value_name = "FILE TF", value_name = "FILE DT")]
@@ -33,7 +33,8 @@ enum Commands {
         data: PathBuf,
     },
     XLSX {
-        #[arg(short, long, value_name = "FILE DM", value_name = "FILE TF", value_name = "FILE DT")]
+        #[arg(short, long, value_name = "RETURN", value_name = "FILE DM", value_name = "FILE TF", value_name = "FILE DT")]
+        return_format: String,
         project: PathBuf,
         transform: PathBuf,
         data: PathBuf,
@@ -70,11 +71,12 @@ pub fn read_in() -> () {
             println!("Csv: project {:?}, transform: {:?}, data: {:?}", project, transform, data);
             println!("not implemented");
         },
-        Some(Commands::XLSX { project: project, transform, data}) => {
-            println!("Xlsx: project {:?}, transform: {:?}, data: {:?}", project, transform, data);
-            operations::export_parquet(data, project, transform);
-            //operations::export_csv(data,project, transform);
-
+        Some(Commands::XLSX { return_format, project: project, transform, data }) => {
+            println!("Xlsx: project {:?}, transform: {:?}, data: {:?}, return: {:?}", project, transform, data, return_format);
+            match return_format.as_str() {
+                "parquet" => operations::export_parquet(data, project, transform),
+                "csv" => operations::export_csv(data, project, transform),
+                _ => println!("unknown return-format '{}'. Only 'parquet' and 'csv' are valid formats.", return_format) }
         },
         None => (println!("Command '{:?}' does not exist: Commands are 'validate', 'csv', 'xlsx'", cli.command)),
     }

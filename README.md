@@ -13,34 +13,48 @@ The whole program that reads those files and imports the xlsx is written in the 
 At the moment it is possible
 - to evaluate a data-model
 - to evaluate a transform-file (a file that describes how to import the xlsx)
-- return the xlsx-data as a csv-file (but I am working on an alternative: 'parquet', which should allow to store the data of multiple resources(and their properties) in one parquet-file, see: https://parquet.apache.org/ and https://elferherrera.github.io/arrow_guide/)
+- return the xlsx-data as a csv-file or as a parquet-file (https://parquet.apache.org/) whereas every file contains one class of resource-instances.
+
+Why parquet?
+
+parquet allows to store metadata such as the name of the resource-class, the name of columns etc. separated from the data unlike in csv, xlsx etc. 
+It can be read in python using 'pyarrow'(https://pypi.org/project/pyarrow/)
+to import a parquet-file in python is easy:
+```python
+import pyarrow.parquet as pq
+path = 'file.parquet'
+table = pq.read_table(path)
+```
 
 The rest of this Mark-down describes: 
-- how to install rust
+- how to run the cli-commands
 - the cli-commands
 - the structure of a datamodel in HCL
 - the structure of a transform-HCL file 
 - and the different commands to manipulate data-vectors with transform-hcl.
 
-### how to run it 
+### how to run commands 
 install Rust:
 - follow the steps here: https://www.rust-lang.org/tools/install (if you prefer a different way, please make sure that you install 'Cargo', the build tool of Rust as well)
 compile the files:
-1. open a terminal 
-2. go to the top-folder 'datamodel-hcl' and run ```cargo build```
-3. now you will be able to run the CLI Commands
+1. download the repository
+2. open a terminal 
+3. go to the top-folder 'datamodel-hcl' and run ```cargo build```
+4. now you will be able to run the CLI Commands
 
 
 ### Cli Commands 
  #### how to use Cli commands -> todo
 - evaluate data-model:```validate {path} datamodel```
 - evaluate transform-file:```validate {path} transform```
-- manipulate xlsx-data: returns one csv-file per xlsx-sheet:  ```xlsx {xlsx-path} {datamodel-path} {transform-path}```
+- manipulate xlsx-data: returns one csv-or parquet-file(return-format is either 'csv' or 'parquet') per xlsx-sheet:  ```xlsx {return-format} {xlsx-path} {datamodel-path} {transform-path}``` 
 - manipulate csv-data: not implemented 
 
 1. for every command: open a terminal
 2. go to the top-folder of the project 'datamodel-hcl'
 3. type in ```./target/debug/datamodel-hcl-cli {command}```
+
+e.g. a full command to transform xlsx-data to parquet would look like this:  ```./target/debug/datamodel-hcl-cli xlsx parquet ../data.xlsx ../datamodel.hcl ../transform.hcl```
 
 <h2> Validate HCL-Datamodels using Rust </h2>
 
@@ -156,13 +170,37 @@ sheet "1" {
 }
 ``` 
 #### sheet
+```hcl
+sheet "1" {
+  structured_by = "column"
+  headers       = true
+  resource      = "Person"
+  assignments {
+  }
+  transformations{
+  }
+}
+```
 first-level:
 - structured_by: "column" or "row". Is the data organized by column or row?
 - headers: true or false, do headers exist or not?
 - resource: a resource-name, which should match a resource in the data-model
 - assignments: headers or numbers of columns or rows are assigned to a property-name or id or label
-- 
-- 
+- transformations: methods with which we write new columns with manipulated values
+
+#### assignments
+```hcl
+  assignments  {
+    id = "ID"
+    not_lowered = 1
+    hasName = 2
+    hasChildren = 4
+    hasExternalLink = 5
+  }
+```
+- on the left side is the assigned name and on the right side is the Header-String (if headers are set to 'true') or the number of the column/row (headers can be set to 'true' or 'false').
+- a column can only be assigned once.
+- a column/row has to be assigned to 'id' and 'label' or has to be defined as output in a method in transformations, because a resource has to have an 'id' and a 'label'.
 ### methods:
 - lower
 - upper

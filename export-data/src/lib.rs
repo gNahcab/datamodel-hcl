@@ -1,2 +1,2 @@
-mod table;
+mod export;
 pub mod operations;

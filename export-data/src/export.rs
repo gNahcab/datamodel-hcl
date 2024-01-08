@@ -2,51 +2,28 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::fs::File;
 use std::path::Path;
-use arrow::array::{ArrayRef, GenericStringArray, Int32Array, StringArray};
+use arrow::array::{ArrayRef, GenericStringArray, StringArray};
 use arrow::datatypes::{DataType, Field};
 use arrow::{
     record_batch::RecordBatch,
     datatypes::Schema,
 };
-use arrow::csv::{Writer, WriterBuilder};
+use arrow::csv::WriterBuilder;
 use arrow::record_batch::RecordBatchWriter;
-use parquet::{
-    file::reader::SerializedFileReader,
-};
-use parquet::arrow::arrow_reader::ParquetRecordBatchReader;
 use parquet::arrow::ArrowWriter;
-use parquet::basic::Compression;
-use parquet::file::properties::WriterProperties;
-
+use chrono::{Datelike, Timelike, Utc};
 use manipulate_data::manipulation::shape_data::ShapedData;
-use crate::operations::new_path;
 
-pub struct WrapperTable(pub Vec<ShapedData>);
+pub struct WrapperExport(pub Vec<ShapedData>);
 // The Table struct. This object will represent the data read from the
 // parquet files and it will be our entry point to any value in the file
 
-
-impl WrapperTable {
+impl WrapperExport {
     // see: https://elferherrera.github.io/arrow_guide/reading_parquet.html
-    /*
-    let schema = Schema::new(vec![
-        Field::new("index", DataType::Int32, false),
-        Field::new("fruits", DataType::Utf8, false),
-    ]);
-
-    let a = Int32Array::from(vec![1, 2, 3, 4, 5]);
-    let b = StringArray::from(vec!["apple", "banana", "pineapple", "melon", "pear"]);
-
-    let record_batch =
-        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(a), Arc::new(b)]).unwrap();
-
-     */
-
-    pub(crate) fn to_table(&self) -> Table {
+    pub(crate) fn to_dataholder(&self) -> DataHolder {
         // see: https://elferherrera.github.io/arrow_guide/arrays_recordbatch.html
         let mut record_batches: Vec<RecordBatch> = vec![];
         for data_sheet in self.0.iter() {
-            // todo: something is wrong with metadata/schema
             // metadata
             let resource = &data_sheet.resource;
             let property_to_data = &data_sheet.property_to_data;
@@ -70,38 +47,27 @@ impl WrapperTable {
         }
 
             let length = record_batches.len();
-            Table {
-                schema: Schema { fields: Default::default(), metadata: Default::default() },
+            DataHolder {
                 data: record_batches,
-                rows: length,
             }
 
     }
 
 }
-pub struct Table {
-    // We mantain a copy of the RecordBatch schema to keep handy the
-    // file's metadata information.
-    schema: Schema,
+pub struct DataHolder {
     data: Vec<RecordBatch>,
-    rows: usize,
 }
-impl Table {
-    pub fn to_parquet<T: AsRef<Path>>(&self, path: T) {
-        println!("rows: {:?}", self.rows);
-        println!("schema: {:?}", self.schema);
-        panic!();
-        let file = File::create(path).unwrap();
-        let mut writer = ArrowWriter::try_new(file, Arc::new(self.schema.clone()), None).unwrap();
-
-        // WriterProperties can be used to set Parquet file options
-        let props = WriterProperties::builder()
-            .set_compression(Compression::SNAPPY)
-            .build();
+impl DataHolder {
+    pub fn to_parquet(&self) {
+        let ending = ".parquet";
         for batch in self.data.iter() {
+            let middle = &batch.schema().metadata.get("resource").unwrap().to_owned().to_owned();
+            let new_path = new_path(ending, middle);
+            let file = File::create(new_path).unwrap();
+            let mut writer = ArrowWriter::try_new(file, batch.schema(), None).unwrap();
             writer.write(&batch).unwrap();
+            writer.close().unwrap();
         }
-        writer.close().unwrap();
     }
     pub(crate) fn to_csv(&self) ->  () {
         // https://docs.rs/arrow-csv/latest/arrow_csv/writer/index.html
@@ -110,6 +76,7 @@ impl Table {
             let middle = &batch.schema().metadata.get("resource").unwrap().to_owned().to_owned();
             let new_path = new_path(ending, middle);
             let file = File::create(new_path).unwrap();
+
             // create a builder that doesn't write headers
             let builder = WriterBuilder::new().has_headers(true);
             let mut writer = builder.build(file);
@@ -117,9 +84,16 @@ impl Table {
             writer.close().unwrap();
         }
     }
-
-    fn new_csv_path(resource_name: &String) -> String {
-        let ending = "csv";
-        return new_path(ending, resource_name);
+}
+pub(crate) fn new_path(ending: &str, middle: &str) -> String {
+    // returns a valid new path
+    let now = Utc::now();
+    let date = format!("{:02}{:02}{:02}",now.year(), now.month(), now.day());
+    let rest = format!("{}_{}", date, middle);
+    let mut path = format!("{}{}", rest, ending);
+    if Path::new(path.as_str()).exists() {
+        let extended = format!("{:02}_{:02}{:02}", now.hour(), now.minute(), now.second());
+        path = format!("{}_{}{}", rest, extended, ending);
     }
+    return path.to_string();
 }
