@@ -97,13 +97,6 @@ pub(crate) fn shape_with_data_model(data: Vec<ManipulatedDataSheet>, model: Proj
     Ok(all_shaped_data)
 }
 
-
-fn properties_exist_in_project_model(sheet: &ManipulatedDataSheet, names: Vec<&String>) -> Result<(), ParsingError> {
-    // what are properties? all assignments should be properties, if they are not, they should be removed
-
-    todo!()
-}
-
 fn resources_exist_in_project_model(sheet: &ManipulatedDataSheet, names: Vec<&String>) -> Result<(), ParsingError> {
     if !names.contains(&&sheet.resource) {
         return Err(ParsingError::ValidationError(format!("a transform-sheet contains the resource-name '{:?}'. But this resource doesn't exist in the data-model.All Resources in the data-model are: '{:?}'", sheet.resource, names)))

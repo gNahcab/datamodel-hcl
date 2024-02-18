@@ -1,8 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use calamine::{DataType, Range};
-use polars::export::arrow::types::Index;
-use polars::export::num::ToPrimitive;
 use crate::errors::ParsingError;
 use crate::transform_parse::domain::assignment::Assignments;
 use crate::transform_parse::domain::header_value::HeaderValue;
@@ -42,7 +40,7 @@ impl DataSheetWrapper {
             };
             let headers: Vec<String> = first_row.iter().map(|entry|(entry.to_string())).collect();
 
-            transient_data_sheet.add_headers(headers);
+            transient_data_sheet.add_headers(headers)?;
             start = 1;
         }
         let mut data: Vec<Vec<String>> = Vec::with_capacity(self.0.1.width() - start);
@@ -62,11 +60,11 @@ impl DataSheetWrapper {
         let mut transient_data_sheet: TransientDataSheet= TransientDataSheet::new(&self.1.resource, &self.1.assignments);
         transient_data_sheet.add_width(self.0.1.height());
         transient_data_sheet.add_height(self.0.1.width());
-        let mut worksheet_iterator = self.0.1.rows();
+        let worksheet_iterator = self.0.1.rows();
         let mut start = 0;
         if self.1.headers_exist {
-             let headers: Vec<String> = self.0.1.cells().into_iter().filter(|(i, j, value)| j == &0usize).map(|(i,j, value)| value.to_string()).collect();
-            transient_data_sheet.add_headers(headers);
+             let headers: Vec<String> = self.0.1.cells().into_iter().filter(|(_, j, _)| j == &0usize).map(|(_,_, value)| value.to_string()).collect();
+            transient_data_sheet.add_headers(headers)?;
             start = 1;
         }
         let mut data: Vec<Vec<String>> = vec![];
@@ -126,10 +124,6 @@ pub struct DataSheet {
 }
 
 impl DataSheet {
-}
-
-
-impl DataSheet {
     pub fn new(transient_data_sheet: TransientDataSheet) -> DataSheet {
         DataSheet{
             tabular_data: transient_data_sheet.tabular_data,
@@ -153,7 +147,7 @@ impl DataSheet {
 
     fn do_column_numbers_exist(&self, sheet_info: &SheetInfo) -> Result<(), ParsingError> {
         // check if the column-number can be assigned to a column
-        let headers: Vec<&HeaderValue> = sheet_info.assignments.assignments_to_header_value.iter().map(|(new_header, current)| current).collect();
+        let headers: Vec<&HeaderValue> = sheet_info.assignments.assignments_to_header_value.iter().map(|(_, current)| current).collect();
         let numbers_greater_than_width: Vec<&u8>= headers
             .iter()
             .filter_map(|header_value| match header_value {
@@ -168,7 +162,7 @@ impl DataSheet {
     }
     fn check_headers_in_assignments(&self, sheet_info:&SheetInfo) -> Result<(), ParsingError> {
         // check headers in assignments exist in spreadsheet
-        let headers: Vec<&String> = sheet_info.assignments.assignments_to_header_value.iter().map(|(new_header, current)| current).flat_map(|current|match current {
+        let headers: Vec<&String> = sheet_info.assignments.assignments_to_header_value.iter().map(|(_, current)| current).flat_map(|current|match current {
             HeaderValue::Name(name) => {Some(name)}
             HeaderValue::Number(_) => {None}
         }).collect();
@@ -181,8 +175,14 @@ impl DataSheet {
     fn check_headers_numbers_not_match(&self, sheet_info: &SheetInfo) -> Result<(), ParsingError> {
         // check headers and numbers assigned don't match: otherwise a column would be assigned twice: once as a number and once as a Header-string
         if self.headers.is_some() {
-            let assigned_headers_to_header_number: Vec<(&String, usize)>= sheet_info.assignments.assignments_to_header_value.iter().
-                filter_map(|(name, header_value)| match header_value {
+            let assigned_numbers: Vec<&u8> = sheet_info.assignments.assignments_to_header_value.iter().
+                filter_map(|(_, header_value)| match header_value {
+                    HeaderValue::Name(_) => {None}
+                    HeaderValue::Number(value) => {Some(value)}
+                }).collect();
+
+            let headers_used_as_numbers: Vec<(&String, usize)>= sheet_info.assignments.assignments_to_header_value.iter().
+                filter_map(|(_, header_value)| match header_value {
                     HeaderValue::Name(value) => {Some(value)}
                     HeaderValue::Number(_) => {None}
                 }).
@@ -192,13 +192,9 @@ impl DataSheet {
                         position(|header_string|header_string == value).
                         unwrap())
                 ).
+                filter(|( _, nr)|assigned_numbers.contains(&&(nr.to_owned() as u8))).
                 collect();
-            let assigned_numbers: Vec<&u8> = sheet_info.assignments.assignments_to_header_value.iter().
-                filter_map(|(name, header_value)| match header_value {
-                    HeaderValue::Name(_) => {None}
-                    HeaderValue::Number(value) => {Some(value)}
-                }).collect();
-            let headers_used_as_numbers: Vec<&(&String, usize)> = assigned_headers_to_header_number.iter().filter(|(header_name, position)| assigned_numbers.contains(&&(position.to_owned() as u8))).collect();
+
             if headers_used_as_numbers.len() != 0 {
                 return Err(ParsingError::ValidationError(format!("found string-headers that were used as numbers as well: '{:?}'. Either use the number or the headers, but not both.", headers_used_as_numbers)))
             }
@@ -239,7 +235,7 @@ impl DataSheet {
 
         // 2. do all numbers mentioned in transform exist in spreadsheet?
         let numbers_too_great: Vec<&u8> = input_values.iter().flat_map(|header|match header {
-            HeaderValue::Name(name) => {None}
+            HeaderValue::Name(_) => {None}
             HeaderValue::Number(number) => {if *number as usize >= self.width {
                 Some(number)
             } else {
@@ -250,7 +246,7 @@ impl DataSheet {
             return Err(ParsingError::ValidationError(format!("'transform' of sheet-nr '{:?}' has methods with input numbers that are greater than the number of columns/rows of the spreadsheet: '{:?}'", sheet_info.sheet_nr, numbers_too_great)));
         }
         // 3. do all headers mentioned in transform exist in spreadsheet, assignments or transform?
-        let assignments: Vec<&String> = sheet_info.assignments.assignments_to_header_value.iter().map(|(value, header)|value).collect();
+        let assignments: Vec<&String> = sheet_info.assignments.assignments_to_header_value.iter().map(|(value, _)|value).collect();
         let headers_not_existing: Vec<&String> = input_values.iter().flat_map(|header|match header {
             HeaderValue::Name(name) => {
                 if output_values.contains(&name) {
@@ -264,7 +260,7 @@ impl DataSheet {
                 }
                 else {Some(name)}
             }
-            HeaderValue::Number(number) => {None}
+            HeaderValue::Number(_) => {None}
         }).collect();
         if headers_not_existing.len() != 0 {
             return Err(ParsingError::ValidationError(format!("'transform' of sheet-nr '{:?}' has methods with input headers that don't exist in headers of the spreadsheet nor in assignments nor as other output-values of another transform-methods: '  '{:?}'", sheet_info.sheet_nr, headers_not_existing)));
@@ -279,7 +275,7 @@ impl DataSheet {
         for (name, header) in self.assignments.iter() {
             match header {
                 HeaderValue::Name(header_value) => {
-                   let header_nr = self.headers.as_ref().unwrap().iter().enumerate().find(|(nr, value)| value == &header_value).unwrap().0;
+                   let header_nr = self.headers.as_ref().unwrap().iter().enumerate().find(|(_, value)| value == &header_value).unwrap().0;
                     new_assignments.insert(name.to_owned(), header_nr);
                 }
                 HeaderValue::Number(number) => {
@@ -289,7 +285,7 @@ impl DataSheet {
         }
         // 2
         if self.headers.is_some() {
-            let numbers: Vec<usize> = new_assignments.iter().map(|(name, vec_nr)| vec_nr.to_owned()).collect();
+            let numbers: Vec<usize> = new_assignments.iter().map(|(_, vec_nr)| vec_nr.to_owned()).collect();
             for (nr, header) in self.headers.as_ref().unwrap().iter().enumerate() {
                 if numbers.contains(&&nr){
                    continue

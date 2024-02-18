@@ -1,5 +1,4 @@
 use std::path::Path;
-use polars::frame::DataFrame;
 use parse_data::errors::ParsingError;
 use parse_data::transform_parse::domain::transform_type::TransformType;
 use crate::manipulation;
@@ -14,6 +13,7 @@ pub fn process_data<P: AsRef<Path>>(data_path: P, data_model_hcl_path: P, transf
             process_xlsx_data(transform_xlsx, data_path)?
         }
         TransformType::CSV(transform_csv) => {
+            panic!("csv not implemented!");
             process_csv_data(transform_csv, data_path)?
         }
     };

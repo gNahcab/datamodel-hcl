@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use regex::Regex;
-use polars::export::arrow::types::Index;
 use polars::export::num::ToPrimitive;
 use parse_data::errors::ParsingError;
 use parse_data::transform_parse::domain::header_value::HeaderValue;
@@ -277,7 +276,7 @@ pub struct ManipulatedDataSheet {
 }
 
 impl ManipulatedDataSheet {
-    fn new(mut transient_manipulated_data_sheet: TransientManipulatedDataSheet) -> ManipulatedDataSheet {
+    fn new(transient_manipulated_data_sheet: TransientManipulatedDataSheet) -> ManipulatedDataSheet {
         ManipulatedDataSheet {
             assignments: transient_manipulated_data_sheet.assignments,
             data: transient_manipulated_data_sheet.tabular_data,

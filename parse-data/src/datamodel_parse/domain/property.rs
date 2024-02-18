@@ -1,6 +1,6 @@
-use hcl::{Attribute, Block, block, BlockLabel};
+use hcl::{Block, BlockLabel};
 use crate::errors::ParsingError;
-use crate::datamodel_parse::domain::label::{Label, LabelBlockWrapper, LabelWrapper};
+use crate::datamodel_parse::domain::label::{Label, LabelBlockWrapper};
 use crate::expression_trait::ExpressionTransform;
 
 
@@ -107,7 +107,7 @@ impl TransientStructureProperty {
         if self.ontology.is_none() {
             return Err(ParsingError::ValidationError(format!("ontology in '{:?}' doesn't exist or isn't provided correctly.", self.propname)));
         }
-        // gui-element only necessary for TextValue
+        // gui-element only necessary for TextValue, IntValue, DecimalValue
         /*
         if self.gui_element.is_none() {
             return Err(ParseError::ValidationError(format!("gui_element in '{:?}' doesn't exist or isn't provided correctly.", self.propname)));

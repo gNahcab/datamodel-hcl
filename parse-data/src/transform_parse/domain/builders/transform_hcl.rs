@@ -1,12 +1,10 @@
-use std::any::Any;
 use std::collections::HashSet;
-use std::hash::Hash;
 use crate::errors::ParsingError;
 use crate::transform_parse::domain::header_value::HeaderValue;
 use crate::transform_parse::domain::organized_by::OrganizedBy;
 use crate::transform_parse::domain::sheet_info::SheetInfo;
 use crate::transform_parse::domain::transform_hcl::{TransformHCL, TransientStructureTransformHCL};
-use crate::transform_parse::domain::transform_type::{TransformCSV, TransformType, TransformXLSX};
+use crate::transform_parse::domain::transform_type::{TransformType, TransformXLSX};
 
 pub struct TransformHCLBuilder {
     transform: String,
@@ -30,13 +28,6 @@ impl TransformHCLBuilder {
             worksheets: transient_structure.worksheets
         }
     }
-    fn is_consistent(&self) {
-        todo!()
-        // check sheets
-        // check worksheets
-        // check csv-transform or xlsx-transform is correct
-    }
-
     fn is_xlsx_consistent(&self) -> Result<(), ParsingError>{
         let all_numbers: Vec<&usize> = self.worksheets.iter().map(|sheet_info|&sheet_info.sheet_nr).collect();
         let mut uniq = HashSet::new();
@@ -67,7 +58,7 @@ impl TransformHCLBuilder {
                 continue
             }
             // check that if headers_exist is false no assignments to a header were made
-            let string_headers: Vec<&String> = sheet_info.assignments.assignments_to_header_value.iter().filter_map(|(assignment, header_value)| match header_value {
+            let string_headers: Vec<&String> = sheet_info.assignments.assignments_to_header_value.iter().filter_map(|(_, header_value)| match header_value {
                 HeaderValue::Name(name) => Some(name),
                 _ => None,
             }).collect();

@@ -1,4 +1,3 @@
-use std::io;
 use std::num::ParseIntError;
 use import_data::errors::DataImportError;
 

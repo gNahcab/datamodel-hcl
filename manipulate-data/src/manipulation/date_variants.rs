@@ -1,9 +1,8 @@
-use regex::Regex;
 use parse_data::errors::ParsingError;
 use parse_data::transform_parse::domain::methods_domain::date_pattern::DatePattern;
 use parse_data::transform_parse::domain::methods_domain::date_type::DateType;
 use parse_data::transform_parse::domain::methods_domain::to_date_method::ToDateMethod;
-use crate::manipulation::date::{Date, DatePeriod, Epoch, TransientDatePeriod};
+use crate::manipulation::date::{DatePeriod, TransientDatePeriod};
 
 pub struct DateWrapper (pub(crate) ToDateMethod, pub(crate) String);
 

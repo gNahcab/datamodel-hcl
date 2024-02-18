@@ -37,6 +37,7 @@ property "hasOriginalText" {
     de = ""
     fr = ""
   }
+  gui_element = "Textarea"
 }
 
 property "hasTranscription" {
@@ -47,6 +48,7 @@ property "hasTranscription" {
     de = ""
     fr = ""
   }
+  gui_element = "Richtext"
 }
 
 property "hasTransliteration" {
@@ -57,6 +59,7 @@ property "hasTransliteration" {
     de = ""
     fr = ""
   }
+  gui_element = "Richtext"
 }
 
 property "hasTranslation" {
@@ -67,6 +70,7 @@ property "hasTranslation" {
     de = ""
     fr = ""
   }
+  gui_element = "Simpletext"
 }
 
 property "hasDescription" {
@@ -77,6 +81,7 @@ property "hasDescription" {
     de = ""
     fr = ""
   }
+  gui_element = "Simpletext"
 }
 
 property "hasAuthor" {
@@ -97,6 +102,7 @@ property "hasName" {
     de = ""
     fr = ""
   }
+  gui_element = "Richtext"
 }
 
 property "hasTitle" {
@@ -107,6 +113,7 @@ property "hasTitle" {
     de = ""
     fr = ""
   }
+  gui_element = "Simpletext"
 }
 
 property "hasDate" {

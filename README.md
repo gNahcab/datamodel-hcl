@@ -1,19 +1,39 @@
 <h1> Validate Datamodels, Manipulate Excel-Data using the Rust Programming Language and HCL (Hashi Corp Language)</h1>
 
 ### purpose of project
-When DaSCH receives data from project, the RDU(Research-Data-Unit) has to interpret and write scripts to import the data or even has to manipulate the original files. 
-But this is not an optimal way of dealing with the data we receive. The idea of this project is to proof that it is possible to find a way to describe how the original data has to be manipulated in order to export it from the original files and import it into DSP without manipulating the original data.
-In this way there should be a strict separation between the original files we receive and the import we create. The import from the original files is always reproducible, because we describe how it has to be imported. 
-A file that describes how the original-files has to be imported is not enough tough, we also need a datamodel so that we don't need to specify everything (e.g. all the properties of a resource-class) in the transform-file.
-The aim of this project was to show that this is possible for xlsx-files (and thus for csv as well) and could be for other formats like sql, filemaker-databases etc. as well (proof of concept). 
+When DaSCH receives data from projects, the RDU(Research-Data-Unit) has to interpret the data and write scripts to import the data into dsp. To do that it even has to manipulate the original files. 
+But this is not an optimal way of dealing with the data we receive. For every project we write new import-scripts, and we might start manipulating the original data without knowing what we all changed.
+This project shows how and to what extent we could avoid these kind of problems. It is a proof of concept. 
+This project shows a way to export data from the original files without manipulating the original files. The data that should be exported can also be manipulated.
+This is how the original files and the data we export are strictly separated.
+
+What is needed except the original-file?
+1. A transform-file written in HCL(Hashi Corp Language)
+2. A datamodel-file written in HCL(Hashi Corp Language)
+
+Both are written in HCL. The advantage of HCL is that its syntax is easier to read than JSON and allows to use declarative logic. Declarative logic declares what should be, rather than describing what is.
+The idea is that this declarative style could be useful writing transform-file and datamodel-file, because it would be more reader-friendly to declare how data should be exported (transform-file) or what a resource or a property should contain (datamodel-file).
+
+A *transform-file* describes what part of the original should be exported and if the exported data should be manipulated.
+This gives us two advantages:
+    - we receive the export of data we described in the transform file, and everyone else can see what we exported by having a look at the transform-file
+    - the export can be reproduced by having the original-file, the transform-file and the datamodel-file.
+
+A file that describes how the original-files has to be imported is not enough though, we also need a datamodel-file.
+A *datamodel-file* describes the ontologies, properties and resources for the project. The datamodel-file in HCL replaces the datamodel that is usually written in JSON. But it only replaces the datamodel-part, it doesn't replace 
+    - lists
+    - any project-info (like users or project-name).
+It doesn't contain lists or project-info because they are not part of a datamodel. Rather they should be written into separate files.
+
+The aim of this project was to show that it is possible for xlsx-files and it could be later shown that it is possible for other formats like sql, filemaker-databases as well. 
 
 The file that describes how to import the xlsx-file is written in HCL(Hashi-Corp-Language) the file that describes the datamodel is written in HCL as well.
-The whole program that reads those files and imports the xlsx is written in the Rust Programming Language.
+The whole program that reads those files and imports the xlsx is written in the Rust Programming Language. The imported data is internally stored as Strings. If there is an error in the datamodel-file, transform-file or in the original-data the program should stop and a useful error-message should be returned. Even though there is still potential to make it a lot clearer.
 
-At the moment it is possible
+At the moment the following cli-commands are available
 - to evaluate a data-model
 - to evaluate a transform-file (a file that describes how to import the xlsx)
-- return the xlsx-data as a csv-file or as a parquet-file (https://parquet.apache.org/) whereas every file contains one class of resource-instances.
+- read a xlsx-file and export the data as a csv-file or as a parquet-file (https://parquet.apache.org/) whereas every file contains one class of resource-instances.
 
 Why parquet?
 
@@ -22,7 +42,7 @@ It can be read in python using 'pyarrow'(https://pypi.org/project/pyarrow/)
 to import a parquet-file in python is easy:
 ```python
 import pyarrow.parquet as pq
-path = 'file.parquet'
+path = 'path_to_my_file.parquet'
 table = pq.read_table(path)
 ```
 
@@ -40,21 +60,29 @@ compile the files:
 1. download the repository
 2. open a terminal 
 3. go to the top-folder 'datamodel-hcl' and run ```cargo build```
-4. now you will be able to run the CLI Commands
+4. now you will be able to run the CLI Commands in this folder
 
 
 ### Cli Commands 
  #### how to use Cli commands -> todo
-- evaluate data-model:```validate {path} datamodel```
-- evaluate transform-file:```validate {path} transform```
-- manipulate xlsx-data: returns one csv-or parquet-file(return-format is either 'csv' or 'parquet') per xlsx-sheet:  ```xlsx {return-format} {xlsx-path} {datamodel-path} {transform-path}``` 
-- manipulate csv-data: not implemented 
+- validate data-model:```validate --type datamodel {path}```
+- validate transform-file:```validate --type transform {path}```
+- manipulate xlsx-data: returns one csv-or parquet-file(return-format is either 'csv' or 'parquet') per xlsx-sheet: ```xlsx --return-format {return-format} {datamodel-path} {transform-path} {xlsx-path}``` 
+
+> example-files to run: 
+> 
+> - /data/testdata/rosetta.hcl
+> - /data/testdata/transform_xlsx.hcl
+> - /data/testdata/test_file_xlsx_col.xlsx
+> - /data/testdata/test_file_xlsx_row.xlsx
 
 1. for every command: open a terminal
 2. go to the top-folder of the project 'datamodel-hcl'
 3. type in ```./target/debug/datamodel-hcl-cli {command}```
 
 e.g. a full command to transform xlsx-data to parquet would look like this:  ```./target/debug/datamodel-hcl-cli xlsx parquet ../data.xlsx ../datamodel.hcl ../transform.hcl```
+
+<mark>important: write absolute paths, not relative paths</mark>
 
 <h2> Validate HCL-Datamodels using Rust </h2>
 
@@ -66,15 +94,14 @@ e.g. a full command to transform xlsx-data to parquet would look like this:  ```
 - Ontologies, properties and resources don't have to be in a fixed order.
  
 ##### ontologies
--> alle Methoden, die ein Datenmodell transformieren unter directory datamodel_parse
 - a complete ontology looks like this:
-- multiple ontologies in one datamodel are possible
  
 ```hcl
 ontology "rosetta" {
   label = "rosetta"
 }
 ```
+- multiple ontologies in one datamodel are possible
 
 ##### properties
 - every property consists of: 
@@ -85,7 +112,7 @@ ontology "rosetta" {
  <li>the <em>labels</em> that describe the property in multiple languages</li>
 </ol>
 
-- a complete property looks like this:
+- this complete property with the name *hasPagenum* looks like this:
 ```hcl
 property "hasPagenum" {
   ontology = "rosetta"
@@ -95,9 +122,13 @@ property "hasPagenum" {
     de = "pagination"
     fr = "pagination"
   }
+  gui_element = "Simpletext"
 }
 ```
-- gui_element: only necessary for object "TextValue" ('Simpletext', 'Textarea', 'Richtext'), "IntValue" or "DecimalValue" (both 'Simpletext' or 'Spinbox')
+- gui_element: only necessary for object "TextValue" ('Simpletext', 'Textarea', 'Richtext'), "IntValue" or "DecimalValue" (both 'Simpletext' or 'Spinbox'). In other cases it can be deleted 
+
+ <mark>important</mark>: some adjustments have to be made, gui_element is ignored at the moment.
+
 ##### resources
 - every resource consists of:
 <ol style="padding-left: 40px">
@@ -106,8 +137,8 @@ property "hasPagenum" {
 <li>zero or more <em>res-props</em></li> TODO: allow ZERO
 </ol>
 
-- a resource is a container for a bunch of properties
-- currently a resource can have the following types: Resource, StillImageRepresentation, TODO add all
+- a resource is a container for a fixed number of properties
+- currently a resource can have the following types: Resource, StillImageRepresentation
 ```hcl 
 Resource "Text"{
     ontology = "rosetta"
@@ -136,27 +167,25 @@ Resource "Text"{
 
 ###### res-props
 - a res-prop is a representation of a property within the resource
-- the name of the res-prop should correspond to a property [see section "properties"]
+- the name of the res-prop should correspond to a property (see section *properties*)
 - every res-prop consists of:
  <ol style="padding-left: 40px">
-  <li>cardinality which describes the number of values that can be attached</li>
-  <li>gui_order which defines the position in the resource</li>
-  <li>the ontology the property is part of</li>
+  <li>the <em>cardinality</em>-tag which describes the number of values that can be attached</li>
+  <li>the <em>gui_order</em>-tag which defines the position of the res-prop in the resource-order</li>
+  <li>the <em>ontology</em>-tag the property is part of</li>
 </ol>
 
-- only a few values are allowed in <em>cardinality</em>: 
+- only a few values are allowed for the <em>cardinality</em>-tag: 
   - 0-1: zero or one value
   - 0-n: zero or n values
   - 1: one value is mandatory
   - 1-n: one value is mandatory but more are allowed
 
-## Transform HCL to manipulate Data 
+## Transform HCL to export data 
 
-- Data is imported by copying data
+- to export the data from the original file we use a transform-file written in HCL(Hashi Corp Language)
+- we can manipulate the data we export, but we don't have to
 
-for parquet: see here
-
-- Transform-HCL is used to manipulate imported data
 ### structure xlsx
 #### first-level attributes:
 - transform: what will be transformed
@@ -202,6 +231,7 @@ first-level:
 - a column can only be assigned once.
 - a column/row has to be assigned to 'id' and 'label' or has to be defined as output in a method in transformations, because a resource has to have an 'id' and a 'label'.
 ### methods:
+> important: every method doesn't manipulate the original column(s), the manipulated values are always saved as a copy under a new header.
 - lower
 - upper
 - combine 
@@ -209,30 +239,181 @@ first-level:
 - to_date
 
 #### lower
- string to lowercase
-
+ values of a variable to lowercase
+ - input-variable: defines which column should be copied and lowered
+ - output-variable: defines the name of the lowered column
+```hcl
+ lower "output-variable" {
+ input = "input-variable"
+ }
+```
 #### upper
- string to uppercase
+ values of a variable to uppercase
+- input-variable: defines which column should be copied and uppered
+- output-variable: defines the name of the uppered column
+```hcl
+ upper "output-variable" {
+ input = "input-variable"
+ }
+```
 
 #### combine 
-- two variables and fixed string elements possible (prefix, middle, suffix)
+ combines the values of two variables, prefix-, separator- (middle part) and suffix-element can be defined 
+- array of two input-variables: defines which columns should be combined
+- output-variable: defines the name of the new combined column
+- separator (not mandatory)
+- prefix (not mandatory)
+- suffix (not mandatory)
 
- -> e.g. combine($a_$b) where $a, $b are variables and "_" is a fixed string element in the middle
+```hcl
+ combine "output-variable" {
+  input = [input-variable_1, input-variable_2]
+  separator = "_"
+  prefix = "BIZ_"
+  suffix = "_ZIP"
+}
+```
 
-#### replace
-- replace elements of a string by another string
-- only fixed strings can be replaced
+
+#### replace -> check this
+replace values or parts of values of a variable
+- input-variable: defines in which column the values to be replaced can be found
+- output-variable: defines the name of the new replaced column
 - words get replaced, not parts of words
 - all occurrences get replaced
 - multiple replace need to have a different name (e.g. replace "a" and replace "b")
-
+```hcl
+replace "output-variable" {
+  input = "input-variable"
+  old = "before"
+  new = "after"
+  condition {
+    behavior = "lazy"
+    target = "part"
+  }
+    }
+```
 #### to_date
-- tries to return a DSP-Date according to data provided
-- only CE-Dates can be transformed, but BC-Dates could be added
+
+##### date
+ return a DSP-Date or DSP-Period according to provided model(s)
+- every column with dates can contain different date-patterns, every pattern must be described and caught
+- "Julian" and "Gregorian" as calender-type
+- only CE-Dates can be transformed for now
 - months can be submitted as words and parsed. But at the moment only ASCII-Characters can be parsed
-pattern is 
+- every date in a pattern must tell in which order day, month and year are represented, for this we use numbers
+
+the pattern that is used allows usually around 1-2 not-aA-aZ-characters, the pattern usually looks like this:
 ```
 {day1/month1/year1}W/{1,2}{day1/month1/year1}W/{1,2}{day1/month1/year1}
 W/{3,4}
 {day2/month2/year2}W/{1,2}{day2/month2/year2}W/{1,2}{day2/month2/year2}
 ```
+- the simplest case would be a date with only a year, e.g. 2001. Described in a pattern, this would look like this:
+```hcl
+  date {
+  year = 1
+}
+```
+- a month and a year, e.g. 02.2001 would look like this
+```hcl
+  date {
+  month = 1
+  year = 2
+}
+```
+- if month and year are reversed, e.g. 2001.02 we would write:
+```hcl
+  date {
+  month = 2
+  year = 1
+}
+```
+- for a date with day, month, year, e.g. 01.10.187, we would write:
+```hcl
+  date {
+  day = 1
+  month = 2
+  year = 3
+}
+```
+- in some cases, the month is written as a word ("January", "Jan.", "Jan" etc.), e.g. 01. February 1887, in this case we would write:
+```hcl
+  date {
+  day = 1
+  month = 2
+  month_word = true
+  year = 3
+}
+```
+- note: at the moment only ASCII-Characters can be used, so any UTF8-Characters like ä, é in März or Février cannot be parsed
+- - todo: day and year is forbidden?
+- -  todo: duplicates are forbidden?
+#### Period
+- a period is described as two dates, e.g. the following period 01 - 03.02.1992 would be described like this:
+```hcl
+first {
+  day = 1
+}
+date {
+  day = 1
+  month = 2
+  year = 3
+}
+```
+#### Procedure of patterns
+- as mentioned, every pattern in a column has to be explicitly described. The program cannot know which pattern it has to use for which value, instead it will try with every pattern until it succeeds or runs out of patterns (in that case the program stops and an error is returned, which should highlight what the problem is)
+- the order in which the patterns are consulted, is fixed by the number after the word "pattern", pattern "1" is used first, then pattern "2" and so on. 
+
+a full example looks like this:
+
+```hcl
+to_date "hasDate" {
+  input = 6
+  calendar_type= "Gregorian"
+  pattern "1" {
+      // e.g. 1.1 - 23 Dezember 1991
+      first {
+          month = 1
+          day = 2
+      }
+      date {
+          day = 1
+          month = 2
+          month_word = true
+          year = 3
+      }
+  }
+  pattern "2" {
+      // e.g. 1 - 23 Dezember 1991
+      first {
+          month = 1
+      }
+      date {
+          day = 1
+          month = 2
+          month_word = true
+          year = 3
+      }
+  }
+  pattern "3" {
+      // e.g. 23 Dezember 1991
+      date {
+          day = 1
+          month = 2
+          month_word = true
+          year = 3
+      }
+  }
+  pattern "4" {
+  // e.g. 23 12 1991
+      date {
+          day = 1
+          month = 2
+          year = 3
+      }
+  }
+}
+- ```
+
+

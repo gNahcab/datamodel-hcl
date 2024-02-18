@@ -1,4 +1,3 @@
-use hcl::format::Format;
 use crate::errors::ParsingError;
 use crate::expression_trait::ExpressionTransform;
 
@@ -35,8 +34,7 @@ impl TransientStructureLabels {
 
 impl LabelWrapper {
     fn to_label(self) -> Result<Label, ParsingError> {
-        let mut text = self.0.expr().to_string_2()?;
-
+        let text = self.0.expr().to_string_2()?;
         let label = Label{language_abbr:self.0.key().to_string(),text:text.to_string()};
         Ok(label)
     }

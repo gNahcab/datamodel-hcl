@@ -21,8 +21,8 @@ pub fn load_csv_dataframe<P: AsRef<Path>>(path: P, delimiter: char) -> Result<Da
 mod test {
     #[test]
     fn test_xlsx_import() {
-            let vec:Vec<usize> = vec![1];
-            let result = super::load_excel_worksheets("../data/testdata/OldExcelDocument.xlsx");
+            let result = super::load_excel_worksheets("datamodel-hcl/data/testdata/test_file_xlsx_col.xlsx");
+            println!("result: {:?}", result);
             assert!(result.is_ok());
     }
     #[test]

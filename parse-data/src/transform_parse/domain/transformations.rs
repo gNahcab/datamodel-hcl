@@ -254,6 +254,7 @@ mod test {
             output: "hasDate".to_string(),
             input: HeaderValue::Name("hasValue".to_string()),
             date_type: DateType::Gregorian,
+            date_patterns: vec![],
         };
         let transformations = Transformations {
             lower_methods: vec![lower_method],

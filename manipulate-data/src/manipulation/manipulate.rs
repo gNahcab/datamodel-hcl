@@ -1,8 +1,7 @@
 use std::path::Path;
 use parse_data::errors::ParsingError;
-use parse_data::transform_parse::domain::transform_hcl::TransformHCL;
 use parse_data::transform_parse::domain::transform_type::{TransformCSV, TransformXLSX};
-use parse_data::xlsx_parse::data_sheet::{DataSheet, xlsx_data_sheets};
+use parse_data::xlsx_parse::data_sheet::xlsx_data_sheets;
 use crate::manipulation::manipulated_data_sheet::ManipulatedDataSheet;
 use crate::manipulation::xlsx_data_sheet::{check_consistency, manipulate_xlsx_data_sheets};
 
@@ -18,7 +17,3 @@ pub fn process_csv_data<P: AsRef<Path>>(transform_csv: TransformCSV, data_path: 
 }
 
 
-
-pub(crate) fn manipulate_with_methods(data_sheets: Vec<DataSheet>, transform: &TransformHCL) -> Result<Vec<DataSheet>, ParsingError> {
-    todo!()
-}

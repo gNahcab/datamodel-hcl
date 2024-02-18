@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use hcl::{Attribute, Expression};
 use crate::errors::ParsingError;
 use crate::transform_parse::domain::header_value::{HeaderMethods, HeaderValue};
@@ -13,6 +13,7 @@ impl AssignmentsWrapper {
         for attribute in attributes {
             assignments.add_pair(attribute.key.as_str(), &attribute.expr)?;
         }
+        assignments.no_duplicates_in_values()?;
         Ok(assignments)
     }
 }
@@ -29,10 +30,33 @@ impl Assignments {
         Assignments{ assignments_to_header_value: Default::default() }
     }
     pub(crate) fn add_pair(&mut self, name_in_dm: &str, identifier: &Expression) -> Result<(), ParsingError> {
+        // adds a pair of name(string) and header(string or number)
         if self.assignments_to_header_value.get(name_in_dm).is_some() {
             return Err(ParsingError::ValidationError(format!("duplicate in assignment, this name already exists: '{}'", name_in_dm)));
         }
         self.assignments_to_header_value.insert(name_in_dm.to_string(), identifier.to_header_value()?);
+        Ok(())
+    }
+    fn no_duplicates_in_values(&self) -> Result<(), ParsingError> {
+        // checks that no duplicates among the strings or the numbers exist in assignments
+        // e.g. "hasNumber" = 3 and "hasOtherNumber" = 3 would result in an Error
+        let mut numbers :HashSet<&u8>= HashSet::new();
+        let mut names :HashSet<&String>= HashSet::new();
+        for header in self.assignments_to_header_value.values() {
+            //no name more than once used
+            match header {
+                HeaderValue::Name(name) => {
+                    if names.insert(name) == false {
+                        return Err(ParsingError::ValidationError(format!("found duplicated header in values assigned in assignments: '{:?}'. Every header shouldn't be assigned more than once.", name)));
+                    }
+                }
+                HeaderValue::Number(number) => {
+                    if numbers.insert(number) == false {
+                        return Err(ParsingError::ValidationError(format!("found duplicated column/row number in values assigned in assignments: '{:?}'. Every number shouldn't be assigned more than once.", number)));
+                    }
+                }
+            }
+        }
         Ok(())
     }
 }

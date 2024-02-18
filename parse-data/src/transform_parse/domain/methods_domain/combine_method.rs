@@ -1,4 +1,4 @@
-use hcl::{Attribute, Block, Expression};
+use hcl::{Block, Expression};
 use crate::errors::ParsingError;
 use crate::expression_trait::ExpressionTransform;
 use crate::transform_parse::domain::header_value::{HeaderMethods, HeaderValue};

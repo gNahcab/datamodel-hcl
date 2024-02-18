@@ -45,8 +45,6 @@ impl WrapperExport {
             };
             record_batches.push(record_batch);
         }
-
-            let length = record_batches.len();
             DataHolder {
                 data: record_batches,
             }
@@ -67,6 +65,7 @@ impl DataHolder {
             let mut writer = ArrowWriter::try_new(file, batch.schema(), None).unwrap();
             writer.write(&batch).unwrap();
             writer.close().unwrap();
+            println!("wrote new parquet-file: {}", new_path);
         }
     }
     pub(crate) fn to_csv(&self) ->  () {
@@ -82,6 +81,7 @@ impl DataHolder {
             let mut writer = builder.build(file);
             writer.write(batch).unwrap();
             writer.close().unwrap();
+            println!("wrote new csv-file: {}", new_path);
         }
     }
 }

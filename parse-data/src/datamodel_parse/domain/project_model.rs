@@ -1,5 +1,4 @@
-use std::str::FromStr;
-use hcl::{Block, Body};
+use hcl::Body;
 use crate::datamodel_parse::domain::builders::Builder;
 use crate::datamodel_parse::domain::ontology::{OntologyWrapper, Ontology};
 use crate::datamodel_parse::domain::builders::project_model::ProjectModelBuilder;
@@ -45,16 +44,16 @@ impl TryFrom<hcl::Body> for ProjectModel {
             match block.identifier() {
                 "ontology" => {
                     let ontology:Ontology = OntologyWrapper { 0:  block.to_owned()}.to_ontology()?;
-                    &project_model_builder.add_to_ontology(ontology);
+                    project_model_builder.add_to_ontology(ontology);
                 }
                 "property" => {
                     let property = PropertyWrapper{0: block.to_owned()}.to_property()?;
-                    &project_model_builder.add_to_properties(property);
+                    project_model_builder.add_to_properties(property);
                 },
                 //todo: add more Resource types, at the moment only 'Resource' and 'StillImageRepresentation' are allowed
                 "Resource" | "StillImageRepresentation" => {
                     let resource = ResourceWrapper{0: block.to_owned()}.to_resource()?;
-                    &project_model_builder.add_to_resources(resource);
+                    project_model_builder.add_to_resources(resource);
                 },
                 _ => return Err(ParsingError::ParseProjectModel(
                     String::from(format!("found invalid block-name: '{}'. Only 'property', 'Resource', 'StillImageRepresentation' allowed", block.identifier())))),

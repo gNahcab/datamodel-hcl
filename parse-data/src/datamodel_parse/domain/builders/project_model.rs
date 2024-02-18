@@ -1,4 +1,3 @@
-use std::num::ParseIntError;
 use crate::datamodel_parse::domain::ontology::Ontology;
 use crate::datamodel_parse::domain::project_model::ProjectModel;
 use crate::datamodel_parse::domain::property::Property;
@@ -152,7 +151,7 @@ impl Builder for ProjectModelBuilder {
     }
 
     fn add_to_ontology(&mut self, ontology: Ontology) {
-        &self.ontologies.push(ontology);
+        self.ontologies.push(ontology);
     }
 
     fn add_to_properties(&mut self, property: Property) {

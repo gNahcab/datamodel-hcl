@@ -2,7 +2,6 @@ use crate::datamodel_parse::domain::project_model::ProjectModel;
 use crate::transform_parse::domain::transform_hcl::TransformHCL;
 use crate::errors::ParsingError;
 use std::path::Path;
-use import_data::errors::DataImportError;
 use import_data::operations::load_hcl;
 
 pub fn read_datamodel<P: AsRef<Path>>(path: P) -> Result<ProjectModel, ParsingError> {

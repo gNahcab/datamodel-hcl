@@ -1,10 +1,10 @@
 use std::num::ParseIntError;
-use hcl::{Attribute, Block, body, Body, Expression, Identifier};
+use hcl::{Attribute, Block};
 use crate::errors::ParsingError;
 use crate::expression_trait::ExpressionTransform;
 use crate::transform_parse::domain::organized_by::OrganizedBy;
 use crate::transform_parse::domain::assignment::{Assignments, AssignmentsWrapper};
-use crate::transform_parse::domain::header_value::{HeaderValue, U8implementation};
+use crate::transform_parse::domain::header_value::HeaderValue;
 use crate::transform_parse::domain::transformations::{Transformations, TransformationsWrapper};
 
 #[derive(Debug)]
@@ -167,14 +167,14 @@ impl SheetInfo {
         if self.transformations.is_some() {
             self.transformations.as_ref().unwrap().is_consistent(self.sheet_nr)?;
             // 1. output-value in transform should never match with new header(output) in assignments
-            let output_assignments: Vec<&String> = self.assignments.assignments_to_header_value.iter().map(|(output, input)|output).collect();
+            let output_assignments: Vec<&String> = self.assignments.assignments_to_header_value.iter().map(|(output, _)|output).collect();
             let output_transforms: Vec<&String> = self.transformations.as_ref().unwrap().output_values();
             let identical_values: Vec<&&String> = output_assignments.iter().filter(|a_output|output_transforms.contains(a_output)).collect();
             if identical_values.len() != 0 {
                 return Err(ParsingError::ValidationError(format!("found in sheet-nr '{:?}' identical values in output-values of transform and assignments: '{:?}'.", self.sheet_nr, identical_values)));
             }
             // 2. input-values in assignments shouldn't be reused in transform as input-values
-            let input_assignments: Vec<&HeaderValue> = self.assignments.assignments_to_header_value.iter().map(|(output, input)|input).collect();
+            let input_assignments: Vec<&HeaderValue> = self.assignments.assignments_to_header_value.iter().map(|(_, input)|input).collect();
             let input_transforms:Vec<&HeaderValue> = self.transformations.as_ref().unwrap().input_values();
             let identical_values: Vec<&&HeaderValue> = input_assignments.iter().filter(|header|input_transforms.contains(header)).collect();
             if identical_values.len() != 0 {
