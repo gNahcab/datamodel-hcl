@@ -61,7 +61,7 @@ impl DataHolder {
         for batch in self.data.iter() {
             let middle = &batch.schema().metadata.get("resource").unwrap().to_owned().to_owned();
             let new_path = new_path(ending, middle);
-            let file = File::create(new_path).unwrap();
+            let file = File::create(&new_path).unwrap();
             let mut writer = ArrowWriter::try_new(file, batch.schema(), None).unwrap();
             writer.write(&batch).unwrap();
             writer.close().unwrap();
@@ -74,7 +74,7 @@ impl DataHolder {
         for batch in self.data.iter() {
             let middle = &batch.schema().metadata.get("resource").unwrap().to_owned().to_owned();
             let new_path = new_path(ending, middle);
-            let file = File::create(new_path).unwrap();
+            let file = File::create(&new_path).unwrap();
 
             // create a builder that doesn't write headers
             let builder = WriterBuilder::new().has_headers(true);

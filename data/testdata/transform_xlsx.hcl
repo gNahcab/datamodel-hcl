@@ -27,8 +27,8 @@ sheet "1" {
       old = "xyz_"
       new = ""
       condition {
-        behavior = "lazy"
-        target = "part"
+        behavior = "greedy"
+        target = "whole"
       }
     }
     to_date "hasDate" {

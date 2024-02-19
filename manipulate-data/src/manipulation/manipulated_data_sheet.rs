@@ -176,20 +176,20 @@ impl TransientManipulatedDataSheet {
                 }
             }
             TargetType::Whole => {
-                match replace.behavior {
+                return match replace.behavior {
                     BehaviorType::Lazy => {
                         let re = Regex::new(format!("(\\b{}\\b)", replace.old).as_str()).unwrap();
                         let new_vec: Vec<String> = old_vec.iter()
                             .map(|value| re.replace(value, &replace.new).to_string())
                             .collect();
-                        return new_vec;
+                        new_vec
                     }
                     BehaviorType::Greedy => {
                         let re = Regex::new(format!("(\\b{}\\b)", replace.old).as_str()).unwrap();
                         let new_vec: Vec<String> = old_vec.iter()
                             .map(|value| re.replace_all(value, &replace.new).to_string())
                             .collect();
-                        return new_vec;
+                        new_vec
                     }
                 }
             }
