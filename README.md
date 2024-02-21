@@ -76,9 +76,9 @@ Compile the files:
 
 > example-files to run: 
 > 
-> - /data/testdata/rosetta.hcl
-> - /data/testdata/transform_xlsx.hcl
-> - /data/testdata/test_file_xlsx_col.xlsx
+> - datamodel-file: /data/testdata/rosetta.hcl
+> - transform-file: /data/testdata/transform_xlsx.hcl
+> - xlsx-file: /data/testdata/test_file_xlsx_col.xlsx
 
 1. for every command: open a terminal.
 2. go to the top-folder of the project 'datamodel-hcl'.
